@@ -1,0 +1,20 @@
+# Coverage directory used by tools like istanbul
+coverage
+coverage.json
+coverageEnv
+
+# Runtime data
+allFiredEvents
+scTopics
+
+# Dependency directory
+node_modules
+
+# truffle build directory
+build/
+
+# macOS
+.DS_Store
+
+# IntelliJ IDE
+.idea
