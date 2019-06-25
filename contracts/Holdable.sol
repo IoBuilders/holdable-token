@@ -1,25 +1,11 @@
 pragma solidity ^0.5.0;
 
-import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import 'github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol';
-import 'github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol';
-import 'github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/IERC20.sol';
-import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "./IHoldable.sol";
 
-
-contract HoldableToken is ERC20, ERC20Mintable, Ownable{
+contract Holdable is IHoldable, ERC20 {
 
    using SafeMath for uint256;
-
-        enum HoldStatusCode {
-        Nonexistent,
-        Ordered,
-        Executed,
-        ReleasedByNotary,
-        ReleasedByPayee,
-        ReleasedOnExpiration
-    }
 
     struct Hold {
         address issuer;
@@ -38,17 +24,7 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
     mapping(address => mapping(address => uint256)) private indexOperator;
 
     uint256 private _totalHeldBalance;
-    
-    
-    event HoldCreated(address indexed holdIssuer, string  operationId, address from, address to, address indexed notary, uint256 value, bool expires, uint256 expiration);
-    event HoldExecuted(address indexed holdIssuer, string operationId, address indexed notary, uint256 heldValue, uint256 transferredValue);
-    event HoldReleased(address indexed holdIssuer, string operationId, HoldStatusCode status);
-    event HoldRenewed(address indexed holdIssuer, string operationId, uint256 oldExpiration, uint256 newExpiration);
-    event AuthorizedHoldOperator(address indexed operator, address indexed account);
-    event RevokedHoldOperator(address indexed operator, address indexed account);
 
-    
-    
     function hold(string calldata operationId, address to, address notary, uint256 value, uint256 timeToExpiration) external returns (bool){
 
         require(holds[operationId].amount == 0, "This operationId already exists");
@@ -81,19 +57,18 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
             to,
             notary,
             value,
-            holds[operationId].expires,
             timeToExpiration
         );
         return true;
     }
-    
-    
+
+
     function holdFrom(string calldata operationId, address from, address to, address notary, uint256 value, uint256 timeToExpiration) external returns (bool){
 
         require(holds[operationId].amount == 0, "This operationId already exists");
         require(value <= balanceOf(from), "Amount of the hold can't be greater than the balance of the origin");
-        require (indexOperator[from][msg.sender] != 0, "This operator is not authorized"); 
-        
+        require (indexOperator[from][msg.sender] != 0, "This operator is not authorized");
+
 
         holds[operationId].issuer = msg.sender;
         holds[operationId].origin = from;
@@ -113,7 +88,7 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
         heldBalance[from] = heldBalance[from].add(value);
 
         _totalHeldBalance = _totalHeldBalance.add(value);
-        
+
         bool expires = holds[operationId].expires; //I did this line because it didn't allow me to put more local vaiables on the event "stack too deep"
 
         emit HoldCreated(
@@ -123,13 +98,12 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
             to,
             notary,
             value,
-            expires,
             timeToExpiration
         );
         return true;
     }
-    
-    
+
+
     function releaseHold(string calldata operationId) external returns (bool){
 
         require(holds[operationId].status == HoldStatusCode.Ordered, "This hold has already been released or executed");
@@ -155,12 +129,12 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
             }
         }
         return true;
-        
+
     }
-    
-    
+
+
     function executeHold(string calldata operationId, uint256 value) external returns (bool){
-        
+
         require(holds[operationId].status == HoldStatusCode.Ordered, "This hold has already been released or executed");
         require(block.timestamp < holds[operationId].expiration || holds[operationId].expires == false, "This hold has already expired");
         require(holds[operationId].notary == msg.sender, "The hold can only be executed by the notary");
@@ -172,12 +146,12 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
         _transfer(holds[operationId].origin, holds[operationId].target, value);
 
         holds[operationId].status = HoldStatusCode.Executed;
-        
+
         emit HoldExecuted(holds[operationId].issuer, operationId, holds[operationId].notary, holds[operationId].amount, value);
         return true;
     }
-    
-    
+
+
     function renewHold(string calldata operationId, uint256 timeToExpiration) external returns (bool){
 
         require(holds[operationId].status == HoldStatusCode.Ordered, "This hold has already been released or executed");
@@ -196,43 +170,43 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
         emit HoldRenewed(holds[operationId].issuer, operationId, oldExpiration, timeToExpiration);
         return true;
     }
-    
-    
-    function retrieveHoldData(string calldata operationId) external view returns (address from, address to, address notary, uint256 value, bool expires, uint256 expiration, HoldStatusCode status){ //maybe also the issuer??
 
-        return (holds[operationId].origin, holds[operationId].target, holds[operationId].notary, holds[operationId].amount, holds[operationId].expires, holds[operationId].expiration, holds[operationId].status);
+
+    function retrieveHoldData(string calldata operationId) external view returns (address from, address to, address notary, uint256 value, uint256 expiration, HoldStatusCode status){ //maybe also the issuer??
+
+        return (holds[operationId].origin, holds[operationId].target, holds[operationId].notary, holds[operationId].amount, holds[operationId].expiration, holds[operationId].status);
     }
-    
-    
+
+
     function balanceOnHold(address account) external view returns (uint256){
         return heldBalance[account];
     }
-    
-    
+
+
     function netBalanceOf(address account) external view returns (uint256){
         return balanceOf(account).sub(heldBalance[account]);
     }
-    
-    
+
+
     function totalSupplyOnHold() external view returns (uint256){
         return _totalHeldBalance;
     }
-    
-    
+
+
     function authorizeHoldOperator(address operator) external returns (bool){
-        
-        require (indexOperator[msg.sender][operator] == 0, "This operator is already authorized"); 
-        
+
+        require (indexOperator[msg.sender][operator] == 0, "This operator is already authorized");
+
         operatorsAuthorized[msg.sender].push(operator);
         indexOperator[msg.sender][operator] = operatorsAuthorized[msg.sender].length;
-        
+
         emit AuthorizedHoldOperator(operator, msg.sender);
         return true;
     }
-    
-    
+
+
     function revokeHoldOperator(address operator) external returns (bool){
-        
+
         require (indexOperator[msg.sender][operator] != 0, "This operator is already not authorized");
 
         for (uint i = indexOperator[msg.sender][operator]-1; i<operatorsAuthorized[msg.sender].length-1; i++){
@@ -242,12 +216,15 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
         delete operatorsAuthorized[msg.sender][operatorsAuthorized[msg.sender].length-1];
         operatorsAuthorized[msg.sender].length--;
         indexOperator[msg.sender][operator] = 0;
-        
+
         emit RevokedHoldOperator(operator, msg.sender);
         return true;
     }
 
-
+    function isHoldOperatorFor(address operator, address from) external view returns (bool) {
+        // TODO: implementation is missing
+        return true;
+    }
 
 
 
@@ -255,9 +232,9 @@ contract HoldableToken is ERC20, ERC20Mintable, Ownable{
    /**
     function _hold(string calldata operationId, address issuer, address from, address to, address notary, uint256 value, uint256 timeToExpiration) external returns (bool){
 
-        
+
     }
-  
+
     **/
 
 }

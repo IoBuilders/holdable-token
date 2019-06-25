@@ -1,0 +1,38 @@
+{
+  "name": "eip1996",
+  "version": "1.0.0",
+  "description": "An extension to the ERC-20 standard token that allows tokens to be put on hold. This guarantees a future transfer and makes the held tokens unavailable for transfer in the mean time. Holds are similar to escrows in that are firm and lead to final settlement.",
+  "main": "truffle-config.js",
+  "dependencies": {
+    "openzeppelin-solidity": "^2.2.0"
+  },
+  "devDependencies": {
+    "randomstring": "^1.1.5",
+    "solidity-coverage": "^0.6.0-beta.5",
+    "truffle": "^5.0.24",
+    "truffle-assertions": "^0.8.2"
+  },
+  "scripts": {
+    "coverage": "solidity-coverage",
+    "lint": "solium -d contracts",
+    "test": "truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IoBuilders/holdable-token.git"
+  },
+  "keywords": [
+    "eip",
+    "erc",
+    "holdable",
+    "solidity",
+    "ethereum",
+    "eth"
+  ],
+  "author": "tech@io.builders",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/IoBuilders/holdable-token/issues"
+  },
+  "homepage": "https://github.com/IoBuilders/holdable-token#readme"
+}
