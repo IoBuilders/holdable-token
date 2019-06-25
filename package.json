@@ -9,6 +9,7 @@
   "devDependencies": {
     "randomstring": "^1.1.5",
     "solidity-coverage": "^0.6.0-beta.5",
+    "solc": "0.5.9",
     "truffle": "^5.0.24",
     "truffle-assertions": "^0.8.2"
   },
