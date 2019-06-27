@@ -165,22 +165,22 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function renewHold(string calldata operationId, uint256 timeToExpiration) external returns (bool){
+        Hold storage renewableHold = holds[operationId];
 
-        require(holds[operationId].status == HoldStatusCode.Ordered, "This hold has already been released or executed");
-        require(block.timestamp < holds[operationId].expiration || holds[operationId].expiration == 0, "This hold has already expired");
-        require(holds[operationId].origin == msg.sender || holds[operationId].issuer == msg.sender, "The hold can only be renewed by the issuer or the payer");
+        require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
+        require(!isExpired(renewableHold.expiration), "An expired hold can not be renewed");
+        require(renewableHold.origin == msg.sender || renewableHold.issuer == msg.sender, "The hold can only be renewed by the issuer or the payer");
 
-        uint256 oldExpiration = holds[operationId].expiration;
+        uint256 oldExpiration = renewableHold.expiration;
 
-        if(timeToExpiration == 0){
-            holds[operationId].expiration = 0;
-        }else{
-            holds[operationId].expiration = block.timestamp.add(timeToExpiration);
+        if (timeToExpiration == 0) {
+            renewableHold.expiration = 0;
+        } else {
+            renewableHold.expiration = getNow().add(timeToExpiration);
         }
 
-        holds[operationId].expiration = timeToExpiration;
+        emit HoldRenewed(renewableHold.issuer, operationId, oldExpiration, renewableHold.expiration);
 
-        emit HoldRenewed(holds[operationId].issuer, operationId, oldExpiration, timeToExpiration);
         return true;
     }
 
@@ -194,7 +194,7 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function netBalanceOf(address account) external view returns (uint256){
-        return balanceOf(account).sub(heldBalance[account]);
+        return super.balanceOf(account);
     }
 
     function totalSupplyOnHold() external view returns (uint256){

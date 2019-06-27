@@ -8,8 +8,8 @@ contract('Holdable', (accounts) => {
     let operationId;
 
     const owner = accounts[0];
-    const userA = accounts[1];
-    const userB = accounts[2];
+    const payer = accounts[1];
+    const payee = accounts[2];
     const operator1 = accounts[3];
     const operator2 = accounts[4];
     const notary = accounts[5];
@@ -22,7 +22,7 @@ contract('Holdable', (accounts) => {
 
     beforeEach(async() => {
         holdable = await Holdable.new({from: owner});
-        holdable.mint(userA, 3);
+        holdable.mint(payer, 3);
 
         operationId = randomString.generate();
     });
@@ -32,11 +32,11 @@ contract('Holdable', (accounts) => {
             await truffleAssert.reverts(
                 holdable.hold(
                     operationId,
-                    userB,
+                    payee,
                     notary,
                     4,
                     0,
-                    {from: userA}
+                    {from: payer}
                 )
             );
         });
@@ -44,18 +44,18 @@ contract('Holdable', (accounts) => {
         it('should successfully create a hold and emit a HoldCreated event', async() => {
               const tx = await holdable.hold(
                   operationId,
-                  userB,
+                  payee,
                   notary,
                   1,
                   0,
-                  {from: userA}
+                  {from: payer}
               );
 
             truffleAssert.eventEmitted(tx, 'HoldCreated', (_event) => {
-                return _event.holdIssuer === userA &&
+                return _event.holdIssuer === payer &&
                     _event.operationId === operationId &&
-                    _event.from === userA &&
-                    _event.to === userB &&
+                    _event.from === payer &&
+                    _event.to === payee &&
                     _event.notary === notary &&
                     _event.value.toNumber() === 1 &&
                     _event.expiration.toNumber() === 0
@@ -68,25 +68,25 @@ contract('Holdable', (accounts) => {
         it('should successfully authorize 2 operators, revoke 1, fail a holdFrom from revoked operator and create a valid one with the authorized operator', async() => {
             const tx1 = await holdable.authorizeHoldOperator(
                 operator1,
-                {from: userA}
+                {from: payer}
 
             );
 
             const tx2 = await holdable.authorizeHoldOperator(
                     operator2,
-                    {from: userA}
+                    {from: payer}
               );
 
             const tx3 = await holdable.revokeHoldOperator(
                     operator2,
-                    {from: userA}
+                    {from: payer}
               );
 
             await truffleAssert.reverts(
                 holdable.holdFrom(
                     operationId,
-                    userA,
-                    userB,
+                    payer,
+                    payee,
                     notary,
                     1,
                     0,
@@ -98,8 +98,8 @@ contract('Holdable', (accounts) => {
 
             const tx4 = await holdable.holdFrom(
                   operationId,
-                  userA,
-                  userB,
+                  payer,
+                  payee,
                   notary,
                   1,
                   0,
@@ -109,8 +109,8 @@ contract('Holdable', (accounts) => {
             truffleAssert.eventEmitted(tx4, 'HoldCreated', (_event) => {
                 return _event.holdIssuer === operator1 &&
                     _event.operationId === operationId &&
-                    _event.from === userA &&
-                    _event.to === userB &&
+                    _event.from === payer &&
+                    _event.to === payee &&
                     _event.notary === notary &&
                     _event.value.toNumber() === 1 &&
                     _event.expiration.toNumber() === 0
@@ -126,11 +126,11 @@ contract('Holdable', (accounts) => {
         beforeEach(async() => {
             await holdable.hold(
                 operationId,
-                userB,
+                payee,
                 notary,
                 1,
                 ONE_DAY,
-                {from: userA}
+                {from: payer}
             );
         });
 
@@ -148,7 +148,7 @@ contract('Holdable', (accounts) => {
             await truffleAssert.reverts(
                 holdable.releaseHold(
                     operationId,
-                    {from: userA}
+                    {from: payer}
                 ),
                 'A not expired hold can only be released by the notary or the payee'
             );
@@ -161,29 +161,29 @@ contract('Holdable', (accounts) => {
             );
 
             truffleAssert.eventEmitted(tx, 'HoldReleased', (_event) => {
-                return _event.holdIssuer === userA &&
+                return _event.holdIssuer === payer &&
                     _event.operationId === operationId &&
                     _event.status.toNumber() === RELEASED_BY_NOTARY
                 ;
             });
 
-           assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 3);
+           assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 3);
         });
 
         it('should be releasable by the payee and emit a HoldReleased event', async() => {
             const tx = await holdable.releaseHold(
                 operationId,
-                {from: userB}
+                {from: payee}
             );
 
             truffleAssert.eventEmitted(tx, 'HoldReleased', (_event) => {
-                return _event.holdIssuer === userA &&
+                return _event.holdIssuer === payer &&
                     _event.operationId === operationId &&
                     _event.status.toNumber() === RELEASED_BY_PAYEE
                     ;
             });
 
-            assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 3);
+            assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 3);
         });
 
         it('should be releasable by anybody after a HoldReleased event', async() => {
@@ -196,13 +196,28 @@ contract('Holdable', (accounts) => {
             );
 
             truffleAssert.eventEmitted(tx, 'HoldReleased', (_event) => {
-                return _event.holdIssuer === userA &&
+                return _event.holdIssuer === payer &&
                     _event.operationId === operationId &&
                     _event.status.toNumber() === RELEASED_BY_EXPIRATION
                     ;
             });
 
-            assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 3);
+            assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 3);
+        });
+
+        it('should revert if it has been already released', async() => {
+            await holdable.releaseHold(
+                operationId,
+                {from: notary}
+            );
+
+            await truffleAssert.reverts(
+                holdable.releaseHold(
+                    operationId,
+                    {from: notary}
+                ),
+                'A hold can only be released in status Ordered'
+            );
         });
     });
 
@@ -210,20 +225,20 @@ contract('Holdable', (accounts) => {
     it('should successfully create a hold and emit a HoldCreated , execute hold ', async() => {
             const tx1 = await holdable.hold(
                   operationId,
-                  userB,
+                  payee,
                   notary,
                   2,
                   0,
-                  {from: userA}
+                  {from: payer}
             );
 
-           assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 1);
+           assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 1);
 
             await truffleAssert.reverts(
                 holdable.executeHold(
                     operationId,
                     1,
-                    {from: userA}
+                    {from: payer}
                 ),
             truffleAssert.ErrorType.REVERT,
             'The hold can only be executed by notary'
@@ -233,7 +248,7 @@ contract('Holdable', (accounts) => {
                 holdable.executeHold(
                     operationId,
                     1,
-                    {from: userB}
+                    {from: payee}
                 ),
             truffleAssert.ErrorType.REVERT,
             'The hold can only be executed by notary'
@@ -244,9 +259,236 @@ contract('Holdable', (accounts) => {
                   1,
                   {from: notary}
             );
-           assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 2);
-           assert.strictEqual((await holdable.balanceOf(userB)).toNumber(), 1);
+           assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 2);
+           assert.strictEqual((await holdable.balanceOf(payee)).toNumber(), 1);
 
         });
     });
+
+    describe('renewHold', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: payer}
+            );
+        });
+
+        it('should revert if a non existing hold id is used', async() => {
+            await truffleAssert.reverts(
+                holdable.renewHold(
+                    randomString.generate(),
+                    ONE_DAY,
+                    {from: payer}
+                ),
+                'A hold can only be renewed in status Ordered'
+            );
+        });
+
+        it('should revert if the hold has been released', async() => {
+            await holdable.releaseHold(
+                operationId,
+                {from: notary}
+            );
+
+            await truffleAssert.reverts(
+                holdable.renewHold(
+                    operationId,
+                    ONE_DAY,
+                    {from: payer}
+                ),
+                'A hold can only be renewed in status Ordered'
+            );
+        });
+
+        it('should revert if the hold has been executed', async() => {
+            await holdable.executeHold(
+                operationId,
+                1,
+                {from: notary}
+            );
+
+            await truffleAssert.reverts(
+                holdable.renewHold(
+                    operationId,
+                    ONE_DAY,
+                    {from: notary}
+                ),
+                'A hold can only be renewed in status Ordered'
+            );
+        });
+
+        it('should revert if the hold has expired', async() => {
+            const hold = await holdable.retrieveHoldData(operationId);
+            await holdable.setNow(hold.expiration + 1);
+
+            await truffleAssert.reverts(
+                holdable.renewHold(
+                    operationId,
+                    ONE_DAY,
+                    {from: payer}
+                ),
+                'An expired hold can not be renewed'
+            );
+        });
+
+        it('should revert if a notary calls it', async() => {
+            await truffleAssert.reverts(
+                holdable.renewHold(
+                    operationId,
+                    ONE_DAY,
+                    {from: notary}
+                ),
+                'The hold can only be renewed by the issuer or the payer'
+            );
+        });
+
+        it('should renew and emit a HoldRenewed when called by the payer with a non zero value', async() => {
+            const originalHold = await holdable.retrieveHoldData(operationId);
+            await holdable.setNow(originalHold.expiration - 1);
+
+            const tx = await holdable.renewHold(
+                operationId,
+                ONE_DAY,
+                {from: payer}
+            );
+
+            const renewedHold = await holdable.retrieveHoldData(operationId);
+            assert.strictEqual(
+                renewedHold.expiration.toNumber(),
+                originalHold.expiration.toNumber() - 1 + ONE_DAY,
+                'Hold was not renewed correctly'
+            );
+
+            truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.oldExpiration.toNumber() === originalHold.expiration.toNumber() &&
+                    _event.newExpiration.toNumber() === renewedHold.expiration.toNumber()
+                ;
+            });
+        });
+
+        it('should renew and emit a HoldRenewed when called by the payer with a zero value', async() => {
+            const originalHold = await holdable.retrieveHoldData(operationId);
+
+            const tx = await holdable.renewHold(
+                operationId,
+                0,
+                {from: payer}
+            );
+
+            const renewedHold = await holdable.retrieveHoldData(operationId);
+            assert.strictEqual(
+                renewedHold.expiration.toNumber(),
+                0,
+                'Hold was not renewed correctly'
+            );
+
+            truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.oldExpiration.toNumber() === originalHold.expiration.toNumber() &&
+                    _event.newExpiration.toNumber() === 0
+                ;
+            });
+        });
+    });
+
+    describe('balanceOnHold', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: payer}
+            );
+        });
+
+        it('should return the held balance of a user', async() => {
+            let balanceOnHold = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHold.toNumber(), 1, 'balanceOnHold not correct after one hold');
+
+            await holdable.hold(
+                randomString.generate(),
+                payee,
+                notary,
+                2,
+                ONE_DAY,
+                {from: payer}
+            );
+
+            balanceOnHold = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHold.toNumber(), 3, 'balanceOnHold not correct after two holds');
+        });
+    });
+
+    describe('netBalanceOf', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: payer}
+            );
+        });
+
+        it('should return the balance including the held balance of a user', async() => {
+            let netBalance = await holdable.netBalanceOf(payer);
+            assert.strictEqual(netBalance.toNumber(), 3, 'netBalanceOf not correct after one hold');
+
+            await holdable.hold(
+                randomString.generate(),
+                payee,
+                notary,
+                2,
+                ONE_DAY,
+                {from: payer}
+            );
+
+            netBalance = await holdable.netBalanceOf(payer);
+            assert.strictEqual(netBalance.toNumber(), 3, 'netBalanceOf not correct after two holds');
+        });
+    });
+
+    describe('totalSupplyOnHold', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                3,
+                ONE_DAY,
+                {from: payer}
+            );
+
+            holdable.mint(userC, 3);
+        });
+
+        it('should return the balance including the held balance of a user', async() => {
+            let totalSupplyOnHold = await holdable.totalSupplyOnHold();
+            assert.strictEqual(totalSupplyOnHold.toNumber(), 3, 'totalSupplyOnHold not correct after one hold');
+
+            await holdable.hold(
+                randomString.generate(),
+                payee,
+                notary,
+                2,
+                ONE_DAY,
+                {from: userC}
+            );
+
+            totalSupplyOnHold = await holdable.totalSupplyOnHold();
+            assert.strictEqual(totalSupplyOnHold.toNumber(), 5, 'totalSupplyOnHold not correct after two holds');
+        });
+    });
 });
+
+
