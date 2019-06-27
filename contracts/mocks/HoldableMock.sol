@@ -18,6 +18,7 @@ contract HoldableMock is Holdable {
             return alternativeNow;
         }
 
+        /* solium-disable-next-line security/no-block-members */
         return block.timestamp;
     }
 }

@@ -41,7 +41,7 @@ contract Holdable is IHoldable, ERC20 {
         if(timeToExpiration == 0){
             holds[operationId].expiration = 0;
         }else{
-            holds[operationId].expiration = block.timestamp.add(timeToExpiration);
+            holds[operationId].expiration = getNow().add(timeToExpiration);
         }
 
         heldBalance[msg.sender] = heldBalance[msg.sender].add(value);
@@ -62,7 +62,14 @@ contract Holdable is IHoldable, ERC20 {
     }
 
 
-    function holdFrom(string calldata operationId, address from, address to, address notary, uint256 value, uint256 timeToExpiration) external returns (bool){
+    function holdFrom(
+        string calldata operationId,
+        address from,
+        address to,
+        address notary,
+        uint256 value,
+        uint256 timeToExpiration
+    ) external returns (bool) {
 
         require(holds[operationId].amount == 0 && holds[operationId].target == address(0) && holds[operationId].notary == address(0), "This operationId already exists");
         require(value <= balanceOf(from), "Amount of the hold can't be greater than the balance of the origin");
@@ -148,7 +155,10 @@ contract Holdable is IHoldable, ERC20 {
 
         require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
         require(!isExpired(renewableHold.expiration), "An expired hold can not be renewed");
-        require(renewableHold.origin == msg.sender || renewableHold.issuer == msg.sender, "The hold can only be renewed by the issuer or the payer");
+        require(
+            renewableHold.origin == msg.sender || renewableHold.issuer == msg.sender,
+            "The hold can only be renewed by the issuer or the payer"
+        );
 
         uint256 oldExpiration = renewableHold.expiration;
 
@@ -163,9 +173,22 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function retrieveHoldData(string calldata operationId) external view returns (address from, address to, address notary, uint256 value, uint256 expiration, HoldStatusCode status){ //maybe also the issuer??
-
-        return (holds[operationId].origin, holds[operationId].target, holds[operationId].notary, holds[operationId].amount, holds[operationId].expiration, holds[operationId].status);
+    function retrieveHoldData(string calldata operationId) external view returns (
+        address from,
+        address to,
+        address notary,
+        uint256 value,
+        uint256 expiration,
+        HoldStatusCode status)
+    {
+        return (
+            holds[operationId].origin,
+            holds[operationId].target,
+            holds[operationId].notary,
+            holds[operationId].amount,
+            holds[operationId].expiration,
+            holds[operationId].status
+        );
     }
 
     function balanceOnHold(address account) external view returns (uint256){
@@ -217,6 +240,7 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function getNow() internal view returns (uint256) {
+        /* solium-disable-next-line security/no-block-members */
         return block.timestamp;
     }
 
