@@ -10,7 +10,6 @@ contract Holdable is IHoldable, ERC20 {
     using SafeMath for uint256;
     using StringUtil for string;
 
-
     struct Hold {
         address issuer;
         address origin;
@@ -26,26 +25,6 @@ contract Holdable is IHoldable, ERC20 {
     mapping(address => mapping(address => bool)) private operators;
 
     uint256 private _totalHeldBalance;
-
-
-
-            /// @notice Retrive the erc20.balanceOf(msg.sender) - heldBalance(msg.sender).
-    function balanceOf(address account) public view returns (uint256) {
-        return virtualBalanceOf(account).sub(heldBalance[account]);
-    }
-
-    /// @notice Retrive the erc20.balanceOf(msg.sender)  (** TALK THIS CONCEPT WITH JULIO **)
-    function virtualBalanceOf(address account) public view returns (uint256) {
-        return super.balanceOf(account);
-    }
-
-    function transfer(address _to, uint256 _value) public returns (bool) {
-        require(balanceOf(msg.sender) >= _value, "Not enough available balance");
-        return super.transfer(_to, _value);
-    }
-
-
-
 
     function hold(string calldata operationId, address to, address notary, uint256 value, uint256 timeToExpiration) external returns (bool){
 
@@ -220,6 +199,21 @@ contract Holdable is IHoldable, ERC20 {
         operators[msg.sender][operator] = false;
         emit RevokedHoldOperator(operator, msg.sender);
         return true;
+    }
+
+    /// @notice Retrieve the erc20.balanceOf(account) - heldBalance(account)
+    function balanceOf(address account) public view returns (uint256) {
+        return super.balanceOf(account).sub(heldBalance[account]);
+    }
+
+    function transfer(address _to, uint256 _value) public returns (bool) {
+        require(balanceOf(msg.sender) >= _value, "Not enough available balance");
+        return super.transfer(_to, _value);
+    }
+
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+        require(balanceOf(_from) >= _value, "Not enough available balance");
+        return super.transferFrom(_from, _to, _value);
     }
 
     function getNow() internal view returns (uint256) {

@@ -22,7 +22,7 @@ contract('Holdable', (accounts) => {
 
     beforeEach(async() => {
         holdable = await Holdable.new({from: owner});
-        holdable.mint(payer, 3);
+        await holdable.mint(payer, 3);
 
         operationId = randomString.generate();
     });
@@ -469,7 +469,7 @@ contract('Holdable', (accounts) => {
                 {from: payer}
             );
 
-            holdable.mint(userC, 3);
+            await holdable.mint(userC, 3);
         });
 
         it('should return the balance including the held balance of a user', async() => {
@@ -489,6 +489,117 @@ contract('Holdable', (accounts) => {
             assert.strictEqual(totalSupplyOnHold.toNumber(), 5, 'totalSupplyOnHold not correct after two holds');
         });
     });
+
+    describe('isHoldOperatorFor', async() => {
+        it('should return false if account is not a hold operator', async() => {
+            const isHoldOperator = await holdable.isHoldOperatorFor(operator1, payer);
+
+            assert.strictEqual(isHoldOperator, false, 'isHoldOperatorFor should return false');
+        });
+
+        it('should return true if account is a hold operator', async() => {
+            await holdable.authorizeHoldOperator(operator1, {from: payer});
+            await holdable.authorizeHoldOperator(operator2, {from: payer});
+
+            let isHoldOperator = await holdable.isHoldOperatorFor(operator1, payer);
+            assert.strictEqual(isHoldOperator, true, 'isHoldOperatorFor should return true for first operator');
+
+            isHoldOperator = await holdable.isHoldOperatorFor(operator2, payer);
+            assert.strictEqual(isHoldOperator, true, 'isHoldOperatorFor should return true for second operator');
+        });
+    });
+
+    describe('transfer', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: payer}
+            );
+        });
+
+        it('should revert if available balance is less than amount to be transferred', async() => {
+            await truffleAssert.reverts(
+                holdable.transfer(
+                    payee,
+                    3,
+                    {from: payer}
+                ),
+                'Not enough available balance'
+            );
+        });
+
+        it('should use the ERC-20 transfer function successfully if available balance is sufficient', async() => {
+            const tx = await holdable.transfer(
+                payee,
+                2,
+                {from: payer}
+            );
+
+            const balanceOfPayer = await holdable.balanceOf(payer);
+            assert.strictEqual(balanceOfPayer.toNumber(), 0, 'Balance of payer not updated after transfer');
+
+            const balanceOfPayee = await holdable.balanceOf(payee);
+            assert.strictEqual(balanceOfPayee.toNumber(), 2, 'Balance of payee not updated after transfer');
+
+            truffleAssert.eventEmitted(tx, 'Transfer', (_event) => {
+                return _event.from === payer &&
+                    _event.to === payee &&
+                    _event.value.toNumber() === 2
+                ;
+            });
+        });
+    });
+
+    describe('transferFrom', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: payer}
+            );
+
+            await holdable.approve(userC, 3, {from: payer});
+        });
+
+        it('should revert if available balance is less than amount to be transferred', async() => {
+            await truffleAssert.reverts(
+                holdable.transferFrom(
+                    payer,
+                    payee,
+                    3,
+                    {from: userC}
+                ),
+                'Not enough available balance'
+            );
+        });
+
+        it('should use the ERC-20 transferFrom function successfully if available balance is sufficient', async() => {
+            const tx = await holdable.transferFrom(
+                payer,
+                payee,
+                2,
+                {from: userC}
+            );
+
+            const balanceOfPayer = await holdable.balanceOf(payer);
+            assert.strictEqual(balanceOfPayer.toNumber(), 0, 'Balance of payer not updated after transfer');
+
+            const balanceOfPayee = await holdable.balanceOf(payee);
+            assert.strictEqual(balanceOfPayee.toNumber(), 2, 'Balance of payee not updated after transfer');
+
+            truffleAssert.eventEmitted(tx, 'Transfer', (_event) => {
+                return _event.from === payer &&
+                    _event.to === payee &&
+                    _event.value.toNumber() === 2
+                    ;
+            });
+        });
+    });
 });
-
-
