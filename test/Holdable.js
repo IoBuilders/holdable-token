@@ -13,7 +13,12 @@ contract('Holdable', (accounts) => {
     const operator1 = accounts[3];
     const operator2 = accounts[4];
     const notary = accounts[5];
-    const ReleasdByNotary = 3;
+    const userC = accounts[6];
+
+    const RELEASED_BY_NOTARY = 3;
+    const RELEASED_BY_PAYEE = 4;
+    const RELEASED_BY_EXPIRATION = 5;
+    const ONE_DAY = 60 * 60 *24;
 
     beforeEach(async() => {
         holdable = await Holdable.new({from: owner});
@@ -64,7 +69,7 @@ contract('Holdable', (accounts) => {
             const tx1 = await holdable.authorizeHoldOperator(
                 operator1,
                 {from: userA}
-            
+
             );
 
             const tx2 = await holdable.authorizeHoldOperator(
@@ -117,53 +122,87 @@ contract('Holdable', (accounts) => {
     });
 
 
-    describe('hold, Release', async() => {
-    it('should successfully create a hold and emit a HoldCreated event. release hold and emit event', async() => {
-            const tx1 = await holdable.hold(
-                  operationId,
-                  userB,
-                  notary,
-                  1,
-                  0,
-                  {from: userA}
+    describe('releaseHold', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                userB,
+                notary,
+                1,
+                ONE_DAY,
+                {from: userA}
             );
+        });
 
-            truffleAssert.eventEmitted(tx1, 'HoldCreated', (_event) => {
-                return _event.holdIssuer === userA &&
-                    _event.operationId === operationId &&
-                    _event.from === userA &&
-                    _event.to === userB &&
-                    _event.notary === notary &&
-                    _event.value.toNumber() === 1 &&
-                    _event.expiration.toNumber() === 0
-                ;
-            });
-           assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 2);
+        it('should revert if a non existing hold id is used', async() => {
+            await truffleAssert.reverts(
+                holdable.releaseHold(
+                    randomString.generate(),
+                    {from: notary}
+                ),
+                'A hold can only be released in status Ordered'
+            );
+        });
 
+        it('should revert if anybody else instead of the notary or the payee call it while not expired', async() => {
             await truffleAssert.reverts(
                 holdable.releaseHold(
                     operationId,
                     {from: userA}
                 ),
-            truffleAssert.ErrorType.REVERT,
-            'The hold can only be released by notary or payee'
+                'A not expired hold can only be released by the notary or the payee'
             );
+        });
 
-            const tx2 = await holdable.releaseHold(
+        it('should be releasable by the notary and emit a HoldReleased event', async() => {
+            const tx = await holdable.releaseHold(
                   operationId,
                   {from: notary}
             );
 
-            truffleAssert.eventEmitted(tx2, 'HoldReleased', (_event) => {
+            truffleAssert.eventEmitted(tx, 'HoldReleased', (_event) => {
                 return _event.holdIssuer === userA &&
                     _event.operationId === operationId &&
-                    _event.status.toNumber() === ReleasdByNotary
-                    
+                    _event.status.toNumber() === RELEASED_BY_NOTARY
                 ;
             });
+
            assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 3);
+        });
 
+        it('should be releasable by the payee and emit a HoldReleased event', async() => {
+            const tx = await holdable.releaseHold(
+                operationId,
+                {from: userB}
+            );
 
+            truffleAssert.eventEmitted(tx, 'HoldReleased', (_event) => {
+                return _event.holdIssuer === userA &&
+                    _event.operationId === operationId &&
+                    _event.status.toNumber() === RELEASED_BY_PAYEE
+                    ;
+            });
+
+            assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 3);
+        });
+
+        it('should be releasable by anybody after a HoldReleased event', async() => {
+            const hold = await holdable.retrieveHoldData(operationId);
+            await holdable.setNow(hold.expiration + 1);
+
+            const tx = await holdable.releaseHold(
+                operationId,
+                {from: userC}
+            );
+
+            truffleAssert.eventEmitted(tx, 'HoldReleased', (_event) => {
+                return _event.holdIssuer === userA &&
+                    _event.operationId === operationId &&
+                    _event.status.toNumber() === RELEASED_BY_EXPIRATION
+                    ;
+            });
+
+            assert.strictEqual((await holdable.balanceOf(userA)).toNumber(), 3);
         });
     });
 

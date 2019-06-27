@@ -122,33 +122,29 @@ contract Holdable is IHoldable, ERC20 {
 
 
     function releaseHold(string calldata operationId) external returns (bool){
+        Hold storage releasableHold = holds[operationId];
 
-        require(holds[operationId].status == HoldStatusCode.Ordered, "This hold has already been released or executed");
-        if(block.timestamp < holds[operationId].expiration || holds[operationId].expiration == 0){
-            require(holds[operationId].notary == msg.sender || holds[operationId].target == msg.sender, "The hold can only be released by the notary or the payee");
-        }
+        require(releasableHold.status == HoldStatusCode.Ordered, "A hold can only be released in status Ordered");
 
-        heldBalance[holds[operationId].origin] = heldBalance[holds[operationId].origin].sub(holds[operationId].amount);
-        _totalHeldBalance = _totalHeldBalance.sub(holds[operationId].amount);
+        if (isExpired(releasableHold.expiration)) {
+            releasableHold.status = HoldStatusCode.ReleasedOnExpiration;
+        } else {
+            require(releasableHold.notary == msg.sender || releasableHold.target == msg.sender, "A not expired hold can only be released by the notary or the payee");
 
-        if(block.timestamp >= holds[operationId].expiration && holds[operationId].expiration != 0){
-            holds[operationId].status = HoldStatusCode.ReleasedOnExpiration;
-            emit HoldReleased(holds[operationId].issuer, operationId, HoldStatusCode.ReleasedOnExpiration);
-        }
-        if(block.timestamp < holds[operationId].expiration || holds[operationId].expiration == 0){
-            if(holds[operationId].notary == msg.sender){
-                holds[operationId].status = HoldStatusCode.ReleasedByNotary;
-                emit HoldReleased(holds[operationId].issuer, operationId, HoldStatusCode.ReleasedByNotary);
-            }
-            if(holds[operationId].target == msg.sender){
-                holds[operationId].status = HoldStatusCode.ReleasedByPayee;
-                emit HoldReleased(holds[operationId].issuer, operationId, HoldStatusCode.ReleasedByPayee);
+            if (releasableHold.notary == msg.sender) {
+                releasableHold.status = HoldStatusCode.ReleasedByNotary;
+            } else {
+                releasableHold.status = HoldStatusCode.ReleasedByPayee;
             }
         }
+
+        heldBalance[releasableHold.origin] = heldBalance[releasableHold.origin].sub(releasableHold.amount);
+        _totalHeldBalance = _totalHeldBalance.sub(releasableHold.amount);
+
+        emit HoldReleased(releasableHold.issuer, operationId, releasableHold.status);
+
         return true;
-
     }
-
 
     function executeHold(string calldata operationId, uint256 value) external returns (bool){
 
@@ -168,7 +164,6 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-
     function renewHold(string calldata operationId, uint256 timeToExpiration) external returns (bool){
 
         require(holds[operationId].status == HoldStatusCode.Ordered, "This hold has already been released or executed");
@@ -176,7 +171,7 @@ contract Holdable is IHoldable, ERC20 {
         require(holds[operationId].origin == msg.sender || holds[operationId].issuer == msg.sender, "The hold can only be renewed by the issuer or the payer");
 
         uint256 oldExpiration = holds[operationId].expiration;
-        
+
         if(timeToExpiration == 0){
             holds[operationId].expiration = 0;
         }else{
@@ -184,27 +179,23 @@ contract Holdable is IHoldable, ERC20 {
         }
 
         holds[operationId].expiration = timeToExpiration;
-        
+
         emit HoldRenewed(holds[operationId].issuer, operationId, oldExpiration, timeToExpiration);
         return true;
     }
-
 
     function retrieveHoldData(string calldata operationId) external view returns (address from, address to, address notary, uint256 value, uint256 expiration, HoldStatusCode status){ //maybe also the issuer??
 
         return (holds[operationId].origin, holds[operationId].target, holds[operationId].notary, holds[operationId].amount, holds[operationId].expiration, holds[operationId].status);
     }
 
-
     function balanceOnHold(address account) external view returns (uint256){
         return heldBalance[account];
     }
 
-
     function netBalanceOf(address account) external view returns (uint256){
         return balanceOf(account).sub(heldBalance[account]);
     }
-
 
     function totalSupplyOnHold() external view returns (uint256){
         return _totalHeldBalance;
@@ -217,12 +208,11 @@ contract Holdable is IHoldable, ERC20 {
     function authorizeHoldOperator(address operator) external returns (bool){
 
         require (operators[msg.sender][operator] == false, "This operator is already authorized");
-        
+
         operators[msg.sender][operator] = true;
         emit AuthorizedHoldOperator(operator, msg.sender);
         return true;
     }
-
 
     function revokeHoldOperator(address operator) external returns (bool){
 
@@ -232,6 +222,11 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    
+    function getNow() internal view returns (uint256) {
+        return block.timestamp;
+    }
 
+    function isExpired(uint256 expiration) private view returns (bool) {
+        return expiration != 0 && (getNow() >= expiration);
+    }
 }
