@@ -1,0 +1,7 @@
+@startuml
+UserA -> "Holdable Token": hold(to: UserB)
+"Holdable Token" -> Notary: HoldCreated
+Notary-> "Holdable Token" : releaseHold
+"Holdable Token" -> UserA: release held amount
+"Holdable Token" -> UserA: HoldReleased
+@enduml
