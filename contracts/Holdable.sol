@@ -27,6 +27,26 @@ contract Holdable is IHoldable, ERC20 {
 
     uint256 private _totalHeldBalance;
 
+
+
+            /// @notice Retrive the erc20.balanceOf(msg.sender) - heldBalance(msg.sender).
+    function balanceOf(address account) public view returns (uint256) {
+        return virtualBalanceOf(account).sub(heldBalance[account]);
+    }
+
+    /// @notice Retrive the erc20.balanceOf(msg.sender)  (** TALK THIS CONCEPT WITH JULIO **)
+    function virtualBalanceOf(address account) public view returns (uint256) {
+        return super.balanceOf(account);
+    }
+
+    function transfer(address _to, uint256 _value) public returns (bool) {
+        require(balanceOf(msg.sender) >= _value, "Not enough available balance");
+        return super.transfer(_to, _value);
+    }
+
+
+
+
     function hold(string calldata operationId, address to, address notary, uint256 value, uint256 timeToExpiration) external returns (bool){
 
         require(holds[operationId].amount == 0 && holds[operationId].target == address(0) && holds[operationId].notary == address(0), "This operationId already exists");
@@ -199,6 +219,7 @@ contract Holdable is IHoldable, ERC20 {
         require (operators[msg.sender][operator] == false, "This operator is already authorized");
         
         operators[msg.sender][operator] = true;
+        emit AuthorizedHoldOperator(operator, msg.sender);
         return true;
     }
 
@@ -207,19 +228,10 @@ contract Holdable is IHoldable, ERC20 {
 
         require (operators[msg.sender][operator] == true, "This operator is already not authorized");
         operators[msg.sender][operator] = false;
+        emit RevokedHoldOperator(operator, msg.sender);
         return true;
     }
 
     
-
-        /// @notice Retrive the erc20.balanceOf(msg.sender) - heldBalance(msg.sender).
-    function balanceOf(address account) public view returns (uint256) {
-        return virtualBalanceOf(account).sub(heldBalance[account]);
-    }
-
-    /// @notice Retrive the erc20.balanceOf(msg.sender)  (** TALK THIS CONCEPT WITH JULIO **)
-    function virtualBalanceOf(address account) public view returns (uint256) {
-        return super.balanceOf(account);
-    }
 
 }
