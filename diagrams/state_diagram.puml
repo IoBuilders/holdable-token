@@ -1,0 +1,13 @@
+@startuml
+[*] --> Ordered: HoldCreated
+Ordered --> Ordered: HoldRenewed
+Ordered --> Executed: HoldExecuted
+Ordered: tokens of payer are held and not available for transfer
+Executed: the full or a partial transfer has been done
+Ordered --> ReleasedByNotary: HoldReleased
+ReleasedByNotary: can only be called by the notary
+Ordered --> ReleasedByPayee: HoldReleased
+ReleasedByPayee: can only be called by the payee
+Ordered --> ReleasedOnExpiration: HoldReleased
+ReleasedOnExpiration: can be called by anybody after the hold is expired
+@enduml
