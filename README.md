@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/IoBuilders/holdable-token.svg?branch=master)](https://travis-ci.org/IoBuilders/holdable-token)
 [![Coverage Status](https://coveralls.io/repos/github/IoBuilders/holdable-token/badge.svg?branch=master)](https://coveralls.io/github/IoBuilders/holdable-token?branch=master)
 
-This is the work in progress implementation of [EIP Holdable Token](https://github.com/IoBuilders/EIPs/blob/eip-holdable-token/EIPS/eip-holdable-token.md). This implementation will change over time with the token standard and is not stable at the moment.
+This is the reference implementation of [EIP Holdable Token](https://github.com/IoBuilders/EIPs/blob/eip-holdable-token/EIPS/eip-holdable-token.md). This implementation will change over time with the token standard and is not stable at the moment.
 
 Feedback is appreciated and can given at [the discussion of the EIP](https://github.com/IoBuilders/EIPs/pull/1).
 
