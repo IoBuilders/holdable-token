@@ -32,7 +32,8 @@ contract Holdable is IHoldable, ERC20 {
         address notary,
         uint256 value,
         uint256 timeToExpiration
-    ) external returns (bool) {
+    ) external returns (bool)
+    {
         return _hold(
             operationId,
             msg.sender,
@@ -44,7 +45,6 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-
     function holdFrom(
         string calldata operationId,
         address from,
@@ -52,8 +52,8 @@ contract Holdable is IHoldable, ERC20 {
         address notary,
         uint256 value,
         uint256 timeToExpiration
-    ) external returns (bool) {
-
+    ) external returns (bool)
+    {
         require(from != address(0), "Payer address must not be zero address");
         require(operators[from][msg.sender], "This operator is not authorized");
 
@@ -68,8 +68,7 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-
-    function releaseHold(string calldata operationId) external returns (bool){
+    function releaseHold(string calldata operationId) external returns (bool) {
         Hold storage releasableHold = holds[operationId.toHash()];
 
         require(releasableHold.status == HoldStatusCode.Ordered, "A hold can only be released in status Ordered");
@@ -94,7 +93,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function executeHold(string calldata operationId, uint256 value) external returns (bool){
+    function executeHold(string calldata operationId, uint256 value) external returns (bool) {
         Hold storage executableHold = holds[operationId.toHash()];
 
         require(executableHold.status == HoldStatusCode.Ordered, "A hold can only be executed in status Ordered");
@@ -110,11 +109,17 @@ contract Holdable is IHoldable, ERC20 {
 
         executableHold.status = HoldStatusCode.Executed;
 
-        emit HoldExecuted(executableHold.issuer, operationId, executableHold.notary, executableHold.value, value);
+        emit HoldExecuted(
+            executableHold.issuer,
+            operationId,
+            executableHold.notary,
+            executableHold.value,
+            value
+        );
         return true;
     }
 
-    function renewHold(string calldata operationId, uint256 timeToExpiration) external returns (bool){
+    function renewHold(string calldata operationId, uint256 timeToExpiration) external returns (bool) {
         Hold storage renewableHold = holds[operationId.toHash()];
 
         require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
@@ -132,7 +137,12 @@ contract Holdable is IHoldable, ERC20 {
             renewableHold.expiration = _getBlockTimeStamp().add(timeToExpiration);
         }
 
-        emit HoldRenewed(renewableHold.issuer, operationId, oldExpiration, renewableHold.expiration);
+        emit HoldRenewed(
+            renewableHold.issuer,
+            operationId,
+            oldExpiration,
+            renewableHold.expiration
+        );
 
         return true;
     }
@@ -156,15 +166,15 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function balanceOnHold(address account) external view returns (uint256){
+    function balanceOnHold(address account) external view returns (uint256) {
         return heldBalance[account];
     }
 
-    function netBalanceOf(address account) external view returns (uint256){
+    function netBalanceOf(address account) external view returns (uint256) {
         return super.balanceOf(account);
     }
 
-    function totalSupplyOnHold() external view returns (uint256){
+    function totalSupplyOnHold() external view returns (uint256) {
         return _totalHeldBalance;
     }
 
@@ -172,7 +182,7 @@ contract Holdable is IHoldable, ERC20 {
         return operators[from][operator];
     }
 
-    function authorizeHoldOperator(address operator) external returns (bool){
+    function authorizeHoldOperator(address operator) external returns (bool) {
         require (operators[msg.sender][operator] == false, "The operator is already authorized");
 
         operators[msg.sender][operator] = true;
@@ -180,7 +190,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function revokeHoldOperator(address operator) external returns (bool){
+    function revokeHoldOperator(address operator) external returns (bool) {
         require (operators[msg.sender][operator] == true, "The operator is already not authorized");
 
         operators[msg.sender][operator] = false;
@@ -220,7 +230,8 @@ contract Holdable is IHoldable, ERC20 {
         address notary,
         uint256 value,
         uint256 timeToExpiration
-    ) private returns (bool) {
+    ) private returns (bool)
+    {
         Hold storage newHold = holds[operationId.toHash()];
 
         require(!operationId.isEmpty(), "Operation ID must not be empty");

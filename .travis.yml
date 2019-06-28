@@ -8,6 +8,7 @@ install:
   - npm install -g coveralls
   - npm install
 script:
+  - npm run lint
   - npm test
 before_script:
   - ganache-cli -p 7545 -e 1000000 -l 8000000 > /dev/null 2> /dev/null &

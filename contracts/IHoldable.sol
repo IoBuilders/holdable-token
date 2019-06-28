@@ -10,7 +10,13 @@ interface IHoldable {
         ReleasedOnExpiration
     }
 
-    function hold(string calldata operationId, address to, address notary, uint256 value, uint256 timeToExpiration) external returns (bool);
+    function hold(
+        string calldata operationId,
+        address to,
+        address notary,
+        uint256 value,
+        uint256 timeToExpiration
+    ) external returns (bool);
     function holdFrom(
         string calldata operationId,
         address from,
