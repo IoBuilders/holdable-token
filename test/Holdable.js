@@ -790,28 +790,6 @@ contract('Holdable', (accounts) => {
         });
     });
 
-    describe('revokeHoldOperator', async() => {
-        it('should revert if an operator has not been authorized', async() => {
-            await truffleAssert.reverts(
-                holdable.revokeHoldOperator(unauthorizedOperator, {from: payer}),
-                'The operator is already not authorized'
-            );
-        });
-
-        it('should revoke the authorization of an operator and emit a RevokedHoldOperator event', async() => {
-            await holdable.authorizeHoldOperator(unauthorizedOperator, {from: payer});
-
-            const tx = await holdable.revokeHoldOperator(unauthorizedOperator, {from: payer});
-
-            const isAuthorized = await holdable.isHoldOperatorFor(authorizedOperator, payer);
-            assert.strictEqual(isAuthorized, false, 'Operator authorization has not been revoked');
-
-            truffleAssert.eventEmitted(tx, 'RevokedHoldOperator', (_event) => {
-                return _event.operator === unauthorizedOperator && _event.account === payer;
-            });
-        });
-    });
-
     describe('authorizeHoldOperator', async() => {
         it('should authorize an operator and emit a AuthorizedHoldOperator event', async() => {
             const tx = await holdable.authorizeHoldOperator(authorizedOperator, {from: payer});
@@ -834,22 +812,25 @@ contract('Holdable', (accounts) => {
         });
     });
 
-    describe('isHoldOperatorFor', async() => {
-        it('should return false if account is not a hold operator', async() => {
-            const isHoldOperator = await holdable.isHoldOperatorFor(authorizedOperator, payer);
-
-            assert.strictEqual(isHoldOperator, false, 'isHoldOperatorFor should return false');
+    describe('revokeHoldOperator', async() => {
+        it('should revert if an operator has not been authorized', async() => {
+            await truffleAssert.reverts(
+                holdable.revokeHoldOperator(unauthorizedOperator, {from: payer}),
+                'The operator is already not authorized'
+            );
         });
 
-        it('should return true if account is a hold operator', async() => {
-            await holdable.authorizeHoldOperator(authorizedOperator, {from: payer});
+        it('should revoke the authorization of an operator and emit a RevokedHoldOperator event', async() => {
             await holdable.authorizeHoldOperator(unauthorizedOperator, {from: payer});
 
-            let isHoldOperator = await holdable.isHoldOperatorFor(authorizedOperator, payer);
-            assert.strictEqual(isHoldOperator, true, 'isHoldOperatorFor should return true for first operator');
+            const tx = await holdable.revokeHoldOperator(unauthorizedOperator, {from: payer});
 
-            isHoldOperator = await holdable.isHoldOperatorFor(unauthorizedOperator, payer);
-            assert.strictEqual(isHoldOperator, true, 'isHoldOperatorFor should return true for second operator');
+            const isAuthorized = await holdable.isHoldOperatorFor(authorizedOperator, payer);
+            assert.strictEqual(isAuthorized, false, 'Operator authorization has not been revoked');
+
+            truffleAssert.eventEmitted(tx, 'RevokedHoldOperator', (_event) => {
+                return _event.operator === unauthorizedOperator && _event.account === payer;
+            });
         });
     });
 
