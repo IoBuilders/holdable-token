@@ -4,14 +4,14 @@
   "description": "An extension to the ERC-20 standard token that allows tokens to be put on hold. This guarantees a future transfer and makes the held tokens unavailable for transfer in the mean time. Holds are similar to escrows in that are firm and lead to final settlement.",
   "main": "truffle-config.js",
   "dependencies": {
-    "openzeppelin-solidity": "^2.2.0"
+    "openzeppelin-solidity": "^2.3.0"
   },
   "devDependencies": {
     "ethlint": "^1.2.4",
     "randomstring": "^1.1.5",
     "solidity-coverage": "^0.6.0-beta.5",
-    "solc": "0.5.9",
-    "truffle": "^5.0.24",
+    "solc": "0.5.10",
+    "truffle": "^5.0.25",
     "truffle-assertions": "^0.8.2"
   },
   "scripts": {

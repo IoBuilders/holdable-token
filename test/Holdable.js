@@ -3,6 +3,8 @@ const randomString = require("randomstring");
 
 const Holdable = artifacts.require('HoldableMock');
 
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 contract('Holdable', (accounts) => {
     let holdable;
     let operationId;
@@ -10,8 +12,8 @@ contract('Holdable', (accounts) => {
     const owner = accounts[0];
     const payer = accounts[1];
     const payee = accounts[2];
-    const operator1 = accounts[3];
-    const operator2 = accounts[4];
+    const authorizedOperator = accounts[3];
+    const unauthorizedOperator = accounts[4];
     const notary = accounts[5];
     const userC = accounts[6];
 
@@ -28,6 +30,85 @@ contract('Holdable', (accounts) => {
     });
 
     describe('hold', async() => {
+        it('should revert if operation ID is empty', async() => {
+            await truffleAssert.reverts(
+                holdable.hold(
+                    '',
+                    payee,
+                    notary,
+                    1,
+                    0,
+                    {from: payer}
+                ),
+                'Operation ID must not be empty'
+            );
+        });
+
+        it('should revert if value is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.hold(
+                    operationId,
+                    payee,
+                    notary,
+                    0,
+                    0,
+                    {from: payer}
+                ),
+                'Value must be greater than zero'
+            );
+        });
+
+        it('should revert if operation ID is already used', async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                1,
+                0,
+                {from: payer}
+            );
+
+            await truffleAssert.reverts(
+                holdable.hold(
+                    operationId,
+                    payee,
+                    notary,
+                    1,
+                    0,
+                    {from: payer}
+                ),
+                'This operationId already exists'
+            );
+        });
+
+        it('should revert if payee address is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.hold(
+                    operationId,
+                    ZERO_ADDRESS,
+                    notary,
+                    1,
+                    0,
+                    {from: payer}
+                ),
+                'Payee address must not be zero address'
+            );
+        });
+
+        it('should revert if notary address is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.hold(
+                    operationId,
+                    payee,
+                    ZERO_ADDRESS,
+                    1,
+                    0,
+                    {from: payer}
+                ),
+                'Notary address must not be zero address'
+            );
+        });
+
         it('should revert if value id greater than balance', async() => {
             await truffleAssert.reverts(
                 holdable.hold(
@@ -64,23 +145,54 @@ contract('Holdable', (accounts) => {
         });
     });
 
-    describe(' HoldFrom', async() => {
-        it('should successfully authorize 2 operators, revoke 1, fail a holdFrom from revoked operator and create a valid one with the authorized operator', async() => {
-            const tx1 = await holdable.authorizeHoldOperator(
-                operator1,
+    describe('holdFrom', async() => {
+        beforeEach(async() => {
+            await holdable.authorizeHoldOperator(
+                authorizedOperator,
                 {from: payer}
-
             );
+        });
 
-            const tx2 = await holdable.authorizeHoldOperator(
-                    operator2,
-                    {from: payer}
-              );
+        it('should revert if operation ID is empty', async() => {
+            await truffleAssert.reverts(
+                holdable.holdFrom(
+                    '',
+                    payer,
+                    payee,
+                    notary,
+                    1,
+                    0,
+                    {from: authorizedOperator}
+                ),
+                'Operation ID must not be empty'
+            );
+        });
 
-            const tx3 = await holdable.revokeHoldOperator(
-                    operator2,
-                    {from: payer}
-              );
+        it('should revert if value is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.holdFrom(
+                    operationId,
+                    payer,
+                    payee,
+                    notary,
+                    0,
+                    0,
+                    {from: authorizedOperator}
+                ),
+                'Value must be greater than zero'
+            );
+        });
+
+        it('should revert if operation ID is already used', async() => {
+            await holdable.holdFrom(
+                operationId,
+                payer,
+                payee,
+                notary,
+                1,
+                0,
+                {from: authorizedOperator}
+            );
 
             await truffleAssert.reverts(
                 holdable.holdFrom(
@@ -90,24 +202,98 @@ contract('Holdable', (accounts) => {
                     notary,
                     1,
                     0,
-                    {from: operator2}
+                    {from: authorizedOperator}
                 ),
-            truffleAssert.ErrorType.REVERT,
-            'The operator is not authorized'
+                'This operationId already exists'
+            );
+        });
+
+        it('should revert if payer address is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.holdFrom(
+                    operationId,
+                    ZERO_ADDRESS,
+                    payee,
+                    notary,
+                    1,
+                    0,
+                    {from: authorizedOperator}
+                ),
+                'Payer address must not be zero address'
+            );
+        });
+
+        it('should revert if payee address is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.holdFrom(
+                    operationId,
+                    payer,
+                    ZERO_ADDRESS,
+                    notary,
+                    1,
+                    0,
+                    {from: authorizedOperator}
+                ),
+                'Payee address must not be zero address'
+            );
+        });
+
+        it('should revert if notary address is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.holdFrom(
+                    operationId,
+                    payer,
+                    payee,
+                    ZERO_ADDRESS,
+                    1,
+                    0,
+                    {from: authorizedOperator}
+                ),
+                'Notary address must not be zero address'
+            );
+        });
+
+        it('should revert if value id greater than balance', async() => {
+            await truffleAssert.reverts(
+                holdable.holdFrom(
+                    operationId,
+                    payer,
+                    payee,
+                    notary,
+                    4,
+                    0,
+                    {from: authorizedOperator}
+                )
+            );
+        });
+
+        it('should revert if operator is not authorized', async() => {
+            await truffleAssert.reverts(
+                holdable.holdFrom(
+                    operationId,
+                    payer,
+                    payee,
+                    notary,
+                    1,
+                    0,
+                    {from: unauthorizedOperator}
+                )
+            );
+        });
+
+        it('should successfully create a hold and emit a HoldCreated event', async() => {
+            const tx = await holdable.holdFrom(
+                operationId,
+                payer,
+                payee,
+                notary,
+                1,
+                0,
+                {from: authorizedOperator}
             );
 
-            const tx4 = await holdable.holdFrom(
-                  operationId,
-                  payer,
-                  payee,
-                  notary,
-                  1,
-                  0,
-                  {from: operator1}
-              );
-
-            truffleAssert.eventEmitted(tx4, 'HoldCreated', (_event) => {
-                return _event.holdIssuer === operator1 &&
+            truffleAssert.eventEmitted(tx, 'HoldCreated', (_event) => {
+                return _event.holdIssuer === authorizedOperator &&
                     _event.operationId === operationId &&
                     _event.from === payer &&
                     _event.to === payee &&
@@ -116,11 +302,8 @@ contract('Holdable', (accounts) => {
                     _event.expiration.toNumber() === 0
                 ;
             });
-
         });
-
     });
-
 
     describe('releaseHold', async() => {
         beforeEach(async() => {
@@ -188,7 +371,7 @@ contract('Holdable', (accounts) => {
 
         it('should be releasable by anybody after a HoldReleased event', async() => {
             const hold = await holdable.retrieveHoldData(operationId);
-            await holdable.setNow(hold.expiration + 1);
+            await holdable.setBlockTimeStamp(hold.expiration + 1);
 
             const tx = await holdable.releaseHold(
                 operationId,
@@ -221,47 +404,164 @@ contract('Holdable', (accounts) => {
         });
     });
 
-    describe('hold, Execute', async() => {
-    it('should successfully create a hold and emit a HoldCreated , execute hold ', async() => {
-            const tx1 = await holdable.hold(
-                  operationId,
-                  payee,
-                  notary,
-                  2,
-                  0,
-                  {from: payer}
+    describe('executeHold', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                3,
+                ONE_DAY,
+                {from: payer}
             );
+        });
 
-           assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 1);
+        it('should revert if a non existing hold id is used', async() => {
+            await truffleAssert.reverts(
+                holdable.executeHold(
+                    randomString.generate(),
+                    1,
+                    {from: notary}
+                ),
+                'A hold can only be executed in status Ordered'
+            );
+        });
 
+        it('should revert if value is zero', async() => {
+            await truffleAssert.reverts(
+                holdable.executeHold(
+                    operationId,
+                    0,
+                    {from: notary}
+                ),
+                'Value must be greater than zero'
+            );
+        });
+
+        it('should revert if the hold has expired', async() => {
+            const hold = await holdable.retrieveHoldData(operationId);
+            await holdable.setBlockTimeStamp(hold.expiration + 1);
+
+            await truffleAssert.reverts(
+                holdable.executeHold(
+                    operationId,
+                    1,
+                    {from: notary}
+                ),
+                'The hold has already expired'
+            );
+        });
+
+        it('should revert if called by the payer', async() => {
             await truffleAssert.reverts(
                 holdable.executeHold(
                     operationId,
                     1,
                     {from: payer}
                 ),
-            truffleAssert.ErrorType.REVERT,
-            'The hold can only be executed by notary'
+                'The hold can only be executed by the notary'
             );
+        });
 
+        it('should revert if called by the payee', async() => {
             await truffleAssert.reverts(
                 holdable.executeHold(
                     operationId,
                     1,
                     {from: payee}
                 ),
-            truffleAssert.ErrorType.REVERT,
-            'The hold can only be executed by notary'
+                'The hold can only be executed by the notary'
+            );
+        });
+
+        it('should revert if value is greater than the hold value', async() => {
+            await truffleAssert.reverts(
+                holdable.executeHold(
+                    operationId,
+                    4,
+                    {from: notary}
+                ),
+                'The value should be equal or less than the held amount'
+            );
+        });
+
+        it('should revert if the hold has been released', async() => {
+            await holdable.releaseHold(
+                operationId,
+                {from: notary}
             );
 
-            const tx2 = await holdable.executeHold(
-                  operationId,
-                  1,
-                  {from: notary}
+            await truffleAssert.reverts(
+                holdable.executeHold(
+                    operationId,
+                    1,
+                    {from: notary}
+                ),
+                'A hold can only be executed in status Ordered'
             );
-           assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 2);
-           assert.strictEqual((await holdable.balanceOf(payee)).toNumber(), 1);
+        });
 
+        it('should execute the hold and emit a HoldExecuted event with the full amount', async() => {
+            const tx = await holdable.executeHold(
+                operationId,
+                3,
+                {from: notary}
+            );
+
+            const balanceOfPayer = await holdable.balanceOf(payer);
+            const balanceOfPayee = await holdable.balanceOf(payee);
+
+           assert.strictEqual(balanceOfPayer.toNumber(), 0);
+           assert.strictEqual(balanceOfPayee.toNumber(), 3);
+
+            truffleAssert.eventEmitted(tx, 'HoldExecuted', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.notary === notary &&
+                    _event.heldValue.toNumber() === 3 &&
+                    _event.transferredValue.toNumber() === 3
+                ;
+            });
+        });
+
+        it('should execute the hold and emit a HoldExecuted event with a partial amount', async() => {
+            const tx = await holdable.executeHold(
+                operationId,
+                1,
+                {from: notary}
+            );
+
+            const balanceOfPayer = await holdable.balanceOf(payer);
+            const balanceOfPayee = await holdable.balanceOf(payee);
+
+            assert.strictEqual(balanceOfPayer.toNumber(), 2);
+            assert.strictEqual(balanceOfPayee.toNumber(), 1);
+
+            truffleAssert.eventEmitted(tx, 'HoldExecuted', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.notary === notary &&
+                    _event.heldValue.toNumber() === 3 &&
+                    _event.transferredValue.toNumber() === 1
+                    ;
+            });
+        });
+
+        it('should revert if the hold has been partially executed before', async() => {
+            await holdable.executeHold(
+                operationId,
+                1,
+                {from: notary}
+            );
+
+            await truffleAssert.reverts(
+                holdable.executeHold(
+                    operationId,
+                    1,
+                    {from: notary}
+                ),
+                'A hold can only be executed in status Ordered'
+            );
         });
     });
 
@@ -323,7 +623,7 @@ contract('Holdable', (accounts) => {
 
         it('should revert if the hold has expired', async() => {
             const hold = await holdable.retrieveHoldData(operationId);
-            await holdable.setNow(hold.expiration + 1);
+            await holdable.setBlockTimeStamp(hold.expiration + 1);
 
             await truffleAssert.reverts(
                 holdable.renewHold(
@@ -348,7 +648,7 @@ contract('Holdable', (accounts) => {
 
         it('should renew and emit a HoldRenewed when called by the payer with a non zero value', async() => {
             const originalHold = await holdable.retrieveHoldData(operationId);
-            await holdable.setNow(originalHold.expiration - 1);
+            await holdable.setBlockTimeStamp(originalHold.expiration - 1);
 
             const tx = await holdable.renewHold(
                 operationId,
@@ -490,21 +790,65 @@ contract('Holdable', (accounts) => {
         });
     });
 
+    describe('revokeHoldOperator', async() => {
+        it('should revert if an operator has not been authorized', async() => {
+            await truffleAssert.reverts(
+                holdable.revokeHoldOperator(unauthorizedOperator, {from: payer}),
+                'The operator is already not authorized'
+            );
+        });
+
+        it('should revoke the authorization of an operator and emit a RevokedHoldOperator event', async() => {
+            await holdable.authorizeHoldOperator(unauthorizedOperator, {from: payer});
+
+            const tx = await holdable.revokeHoldOperator(unauthorizedOperator, {from: payer});
+
+            const isAuthorized = await holdable.isHoldOperatorFor(authorizedOperator, payer);
+            assert.strictEqual(isAuthorized, false, 'Operator authorization has not been revoked');
+
+            truffleAssert.eventEmitted(tx, 'RevokedHoldOperator', (_event) => {
+                return _event.operator === unauthorizedOperator && _event.account === payer;
+            });
+        });
+    });
+
+    describe('authorizeHoldOperator', async() => {
+        it('should authorize an operator and emit a AuthorizedHoldOperator event', async() => {
+            const tx = await holdable.authorizeHoldOperator(authorizedOperator, {from: payer});
+
+            const isAuthorized = await holdable.isHoldOperatorFor(authorizedOperator, payer);
+            assert.strictEqual(isAuthorized, true, 'Operator has not been authorized');
+
+            truffleAssert.eventEmitted(tx, 'AuthorizedHoldOperator', (_event) => {
+                return _event.operator === authorizedOperator && _event.account === payer;
+            });
+        });
+
+        it('should revert if an operator has already been authorized', async() => {
+            await holdable.authorizeHoldOperator(authorizedOperator, {from: payer});
+
+            await truffleAssert.reverts(
+                holdable.authorizeHoldOperator(authorizedOperator, {from: payer}),
+                'The operator is already authorized'
+            );
+        });
+    });
+
     describe('isHoldOperatorFor', async() => {
         it('should return false if account is not a hold operator', async() => {
-            const isHoldOperator = await holdable.isHoldOperatorFor(operator1, payer);
+            const isHoldOperator = await holdable.isHoldOperatorFor(authorizedOperator, payer);
 
             assert.strictEqual(isHoldOperator, false, 'isHoldOperatorFor should return false');
         });
 
         it('should return true if account is a hold operator', async() => {
-            await holdable.authorizeHoldOperator(operator1, {from: payer});
-            await holdable.authorizeHoldOperator(operator2, {from: payer});
+            await holdable.authorizeHoldOperator(authorizedOperator, {from: payer});
+            await holdable.authorizeHoldOperator(unauthorizedOperator, {from: payer});
 
-            let isHoldOperator = await holdable.isHoldOperatorFor(operator1, payer);
+            let isHoldOperator = await holdable.isHoldOperatorFor(authorizedOperator, payer);
             assert.strictEqual(isHoldOperator, true, 'isHoldOperatorFor should return true for first operator');
 
-            isHoldOperator = await holdable.isHoldOperatorFor(operator2, payer);
+            isHoldOperator = await holdable.isHoldOperatorFor(unauthorizedOperator, payer);
             assert.strictEqual(isHoldOperator, true, 'isHoldOperatorFor should return true for second operator');
         });
     });
