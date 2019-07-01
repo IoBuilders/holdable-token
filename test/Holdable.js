@@ -20,7 +20,8 @@ contract('Holdable', (accounts) => {
     const RELEASED_BY_NOTARY = 3;
     const RELEASED_BY_PAYEE = 4;
     const RELEASED_BY_EXPIRATION = 5;
-    const ONE_DAY = 60 * 60 *24;
+    const ONE_DAY = 60 * 60 * 24;
+    const TWELVE_HOURS = 60 * 60 * 12;
 
     beforeEach(async() => {
         holdable = await Holdable.new({from: owner});
@@ -370,8 +371,8 @@ contract('Holdable', (accounts) => {
         });
 
         it('should be releasable by anybody after a HoldReleased event', async() => {
-            const hold = await holdable.retrieveHoldData(operationId);
-            await holdable.setBlockTimeStamp(hold.expiration + 1);
+            await holdable.retrieveHoldData(operationId);
+            await holdable.setExpired(true);
 
             const tx = await holdable.releaseHold(
                 operationId,
@@ -439,8 +440,8 @@ contract('Holdable', (accounts) => {
         });
 
         it('should revert if the hold has expired', async() => {
-            const hold = await holdable.retrieveHoldData(operationId);
-            await holdable.setBlockTimeStamp(hold.expiration + 1);
+            await holdable.retrieveHoldData(operationId);
+            await holdable.setExpired(true);
 
             await truffleAssert.reverts(
                 holdable.executeHold(
@@ -622,8 +623,8 @@ contract('Holdable', (accounts) => {
         });
 
         it('should revert if the hold has expired', async() => {
-            const hold = await holdable.retrieveHoldData(operationId);
-            await holdable.setBlockTimeStamp(hold.expiration + 1);
+            await holdable.retrieveHoldData(operationId);
+            await holdable.setExpired(true);
 
             await truffleAssert.reverts(
                 holdable.renewHold(
@@ -648,7 +649,10 @@ contract('Holdable', (accounts) => {
 
         it('should renew and emit a HoldRenewed when called by the payer with a non zero value', async() => {
             const originalHold = await holdable.retrieveHoldData(operationId);
-            await holdable.setBlockTimeStamp(originalHold.expiration - 1);
+
+            // use the mock contracts changeHoldExpirationTime function to reduce the expiration time by twelve hours
+            const reducedOriginalExpiration = originalHold.expiration.toNumber() - TWELVE_HOURS;
+            await holdable.changeHoldExpirationTime(operationId, reducedOriginalExpiration);
 
             const tx = await holdable.renewHold(
                 operationId,
@@ -656,18 +660,21 @@ contract('Holdable', (accounts) => {
                 {from: payer}
             );
 
+            const block = await web3.eth.getBlock(tx.receipt.blockNumber);
+            const expectedExpiration = block.timestamp + ONE_DAY;
+
             const renewedHold = await holdable.retrieveHoldData(operationId);
             assert.strictEqual(
                 renewedHold.expiration.toNumber(),
-                originalHold.expiration.toNumber() - 1 + ONE_DAY,
+                expectedExpiration,
                 'Hold was not renewed correctly'
             );
 
             truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
                 return _event.holdIssuer === payer &&
                     _event.operationId === operationId &&
-                    _event.oldExpiration.toNumber() === originalHold.expiration.toNumber() &&
-                    _event.newExpiration.toNumber() === renewedHold.expiration.toNumber()
+                    _event.oldExpiration.toNumber() === reducedOriginalExpiration &&
+                    _event.newExpiration.toNumber() === expectedExpiration
                 ;
             });
         });

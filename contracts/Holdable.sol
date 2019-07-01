@@ -20,7 +20,7 @@ contract Holdable is IHoldable, ERC20 {
         HoldStatusCode status;
     }
 
-    mapping(bytes32 => Hold) private holds;
+    mapping(bytes32 => Hold) internal holds;
     mapping(address => uint256) private heldBalance;
     mapping(address => mapping(address => bool)) private operators;
 
@@ -134,7 +134,8 @@ contract Holdable is IHoldable, ERC20 {
         if (timeToExpiration == 0) {
             renewableHold.expiration = 0;
         } else {
-            renewableHold.expiration = _getBlockTimeStamp().add(timeToExpiration);
+            /* solium-disable-next-line security/no-block-members */
+            renewableHold.expiration = now.add(timeToExpiration);
         }
 
         emit HoldRenewed(
@@ -213,13 +214,9 @@ contract Holdable is IHoldable, ERC20 {
         return super.transferFrom(_from, _to, _value);
     }
 
-    function _getBlockTimeStamp() internal view returns (uint256) {
-        /* solium-disable-next-line security/no-block-members */
-        return block.timestamp;
-    }
-
     function _isExpired(uint256 expiration) internal view returns (bool) {
-        return expiration != 0 && (_getBlockTimeStamp() >= expiration);
+        /* solium-disable-next-line security/no-block-members */
+        return expiration != 0 && (now >= expiration);
     }
 
     function _hold(
@@ -249,7 +246,8 @@ contract Holdable is IHoldable, ERC20 {
         newHold.status = HoldStatusCode.Ordered;
 
         if (timeToExpiration != 0) {
-            newHold.expiration = _getBlockTimeStamp().add(timeToExpiration);
+            /* solium-disable-next-line security/no-block-members */
+            newHold.expiration = now.add(timeToExpiration);
         }
 
         heldBalance[from] = heldBalance[from].add(value);

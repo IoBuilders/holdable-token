@@ -4,22 +4,27 @@ import "../Holdable.sol";
 
 
 contract HoldableMock is Holdable {
-    uint256 alternativeBlockTimeStamp;
+    bool isExpiredSet;
+    bool isExpired;
 
-    function mint(address account, uint256 value) public {
+    function mint(address account, uint256 value) external {
         _mint(account, value);
     }
 
-    function setBlockTimeStamp(uint256 _alternativeNow) public {
-        alternativeBlockTimeStamp = _alternativeNow;
+    function changeHoldExpirationTime(string calldata operationId, uint256 _expiration) external {
+        holds[operationId.toHash()].expiration = _expiration;
     }
 
-    function _getBlockTimeStamp() internal view returns (uint256) {
-        if (alternativeBlockTimeStamp != 0) {
-            return alternativeBlockTimeStamp;
+    function setExpired(bool _isExpired) external {
+        isExpiredSet = true;
+        isExpired = _isExpired;
+    }
+
+    function _isExpired(uint256 expiration) internal view returns (bool) {
+        if (isExpiredSet) {
+            return isExpired;
         }
 
-        /* solium-disable-next-line security/no-block-members */
-        return block.timestamp;
+        return super._isExpired(expiration);
     }
 }
