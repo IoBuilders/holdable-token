@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/IoBuilders/holdable-token.svg?branch=master)](https://travis-ci.org/IoBuilders/holdable-token)
 [![Coverage Status](https://coveralls.io/repos/github/IoBuilders/holdable-token/badge.svg?branch=master)](https://coveralls.io/github/IoBuilders/holdable-token?branch=master)
+[![npm](https://img.shields.io/npm/v/eip1996.svg)](https://www.npmjs.com/package/eip1996)
 
 This is the reference implementation of [EIP Holdable Token](https://github.com/IoBuilders/EIPs/blob/eip-holdable-token/EIPS/eip-holdable-token.md). This implementation will change over time with the token standard and is not stable at the moment.
 
@@ -48,6 +49,28 @@ The following diagram shows the sequence of a hold creation and release after it
 
 ![Holdable Token: State Diagram](http://www.plantuml.com/plantuml/png/TOx1Jkj034Nt-GgldzGVU0jKWIgnegXRnCAfRvG8rrDv7EZyFTD0YaheAXdVu-Expi4Uuq6Rbt-lj5hTqTO53lbFZqdbmS41QRw7Is07mySlO7F2VeoPc5_DPI_I6onJwkZ81Kxie1ugn2PaAOZVUL1k5TGbft2stC6R7s_qDHfLgSPSBHu3wmMadZErW94a0rrrsq716N9VdbAmbw-EyxHPndisIgQb2kk_AeJQCXMmYRXXV-O2t9BFwMttyGpygTxQvdGSd6D8jlGlaUd8bP-jj4dgjmluTAsl5XeouRnMHMkOZ0Vz1000)
 
+## Install
+
+```
+npm install eip1996
+```
+
+## Usage
+
+To write your custom contracts, import it and extend it through inheritance.
+
+```solidity
+pragma solidity ^0.5.0;
+
+import 'eip1996/contracts/Holdable.sol';
+
+contract MyHoldable is Holdable {
+    // your custom code
+}
+```
+
+> You need an ethereum development framework for the above import statements to work! Check out these guides for [Truffle], [Embark] or [Buidler].
+
 ## Tests
 
 To run the unit tests a local blockchain, like [Ganache](https://www.trufflesuite.com/ganache) has to be running.  Once it does execute `npm test` to run the tests.
@@ -55,3 +78,7 @@ To run the unit tests a local blockchain, like [Ganache](https://www.trufflesuit
 ## Code coverage
 
 To run the code coverage simply execute `npm run coverage`
+
+[Truffle]: https://truffleframework.com/docs/truffle/quickstart
+[Embark]: https://embark.status.im/docs/quick_start.html
+[Buidler]: https://buidler.dev/guides/#getting-started
