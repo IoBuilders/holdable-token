@@ -227,7 +227,7 @@ contract Holdable is IHoldable, ERC20 {
         address notary,
         uint256 value,
         uint256 timeToExpiration
-    ) private returns (bool)
+    ) internal returns (bool)
     {
         Hold storage newHold = holds[operationId.toHash()];
 
@@ -263,6 +263,28 @@ contract Holdable is IHoldable, ERC20 {
             value,
             timeToExpiration
         );
+
+        return true;
+    }
+
+    function _releaseHold(string memory operationId) internal returns (bool) {
+        Hold storage releasableHold = holds[operationId.toHash()];
+
+        require(releasableHold.status == HoldStatusCode.Ordered, "A hold can only be released in status Ordered");
+
+        if (_isExpired(releasableHold.expiration)) {
+            releasableHold.status = HoldStatusCode.ReleasedOnExpiration;
+        } else {
+            if (releasableHold.notary == msg.sender) {
+                releasableHold.status = HoldStatusCode.ReleasedByNotary;
+            } else {
+                releasableHold.status = HoldStatusCode.ReleasedByPayee;
+            }
+        }
+
+        heldBalance[releasableHold.origin] = heldBalance[releasableHold.origin].sub(releasableHold.value);
+        _totalHeldBalance = _totalHeldBalance.sub(releasableHold.value);
+
 
         return true;
     }
