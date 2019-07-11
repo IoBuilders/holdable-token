@@ -112,18 +112,8 @@ contract Holdable is IHoldable, ERC20 {
     function executeHold(string calldata operationId, uint256 value) external returns (bool) {
         Hold storage executableHold = holds[operationId.toHash()];
 
-        require(executableHold.status == HoldStatusCode.Ordered, "A hold can only be executed in status Ordered");
-        require(value != 0, "Value must be greater than zero");
-        require(!_isExpired(executableHold.expiration), "The hold has already expired");
-        require(executableHold.notary == msg.sender, "The hold can only be executed by the notary");
-        require(value <= executableHold.value, "The value should be equal or less than the held amount");
-
-        heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(executableHold.value);
-        _totalHeldBalance = _totalHeldBalance.sub(executableHold.value);
-
+        _setHoldToExecuted(operationId, value);
         _transfer(executableHold.origin, executableHold.target, value);
-
-        executableHold.status = HoldStatusCode.Executed;
 
         emit HoldExecuted(
             executableHold.issuer,
@@ -132,6 +122,7 @@ contract Holdable is IHoldable, ERC20 {
             executableHold.value,
             value
         );
+
         return true;
     }
 
@@ -288,5 +279,20 @@ contract Holdable is IHoldable, ERC20 {
         _totalHeldBalance = _totalHeldBalance.sub(releasableHold.value);
 
         return true;
+    }
+
+    function _setHoldToExecuted(string memory operationId, uint256 value) internal{
+        Hold storage executableHold = holds[operationId.toHash()];
+
+        require(executableHold.status == HoldStatusCode.Ordered, "A hold can only be executed in status Ordered");
+        require(value != 0, "Value must be greater than zero");
+        require(executableHold.notary == msg.sender, "The hold can only be executed by the notary");
+        require(!_isExpired(executableHold.expiration), "The hold has already expired");
+        require(value <= executableHold.value, "The value should be equal or less than the held amount");
+
+        heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(executableHold.value);
+        _totalHeldBalance = _totalHeldBalance.sub(executableHold.value);
+
+        executableHold.status = HoldStatusCode.Executed;
     }
 }
