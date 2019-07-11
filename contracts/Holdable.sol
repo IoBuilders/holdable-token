@@ -281,7 +281,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _setHoldToExecuted(string memory operationId, uint256 value) internal{
+    function _setHoldToExecuted(string memory operationId, uint256 value) internal {
         Hold storage executableHold = holds[operationId.toHash()];
 
         require(executableHold.status == HoldStatusCode.Ordered, "A hold can only be executed in status Ordered");
