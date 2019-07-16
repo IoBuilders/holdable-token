@@ -73,7 +73,7 @@ contract MyHoldable is Holdable {
 
 ## Tests
 
-To run the unit tests a local blockchain, like [Ganache](https://www.trufflesuite.com/ganache) has to be running.  Once it does execute `npm test` to run the tests.
+To run the unit tests execute `npm test`.
 
 ## Code coverage
 

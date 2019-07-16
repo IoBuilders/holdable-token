@@ -112,8 +112,7 @@ contract Holdable is IHoldable, ERC20 {
     function executeHold(string calldata operationId, uint256 value) external returns (bool) {
         Hold storage executableHold = holds[operationId.toHash()];
 
-        _setHoldToExecuted(operationId, value);
-        _transfer(executableHold.origin, executableHold.target, value);
+        _executeHold(operationId, value);
 
         emit HoldExecuted(
             executableHold.issuer,
@@ -281,7 +280,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _setHoldToExecuted(string memory operationId, uint256 value) internal {
+    function _executeHold(string memory operationId, uint256 value) internal {
         Hold storage executableHold = holds[operationId.toHash()];
 
         require(executableHold.status == HoldStatusCode.Ordered, "A hold can only be executed in status Ordered");
@@ -292,6 +291,8 @@ contract Holdable is IHoldable, ERC20 {
 
         heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(executableHold.value);
         _totalHeldBalance = _totalHeldBalance.sub(executableHold.value);
+
+        _transfer(executableHold.origin, executableHold.target, value);
 
         executableHold.status = HoldStatusCode.Executed;
     }

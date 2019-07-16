@@ -4,14 +4,10 @@ language: node_js
 node_js:
   - '10'
 install:
-  - npm install -g ganache-cli@^6
   - npm install -g coveralls
   - npm install
 script:
   - npm run lint
   - npm test
-before_script:
-  - ganache-cli -p 7545 -e 1000000 -l 8000000 > /dev/null 2> /dev/null &
-  - while ! echo exit | nc localhost 7545; do sleep 1; done > /dev/null 2> /dev/null
 after_script:
   - npm run coverage && cat coverage/lcov.info | coveralls

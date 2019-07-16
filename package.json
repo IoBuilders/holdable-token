@@ -1,6 +1,6 @@
 {
   "name": "eip1996",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "An extension to the ERC-20 standard token that allows tokens to be put on hold. This guarantees a future transfer and makes the held tokens unavailable for transfer in the mean time. Holds are similar to escrows in that are firm and lead to final settlement.",
   "main": "truffle-config.js",
   "dependencies": {
@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "ethlint": "^1.2.4",
+    "ganache-cli": "^6.4.5",
     "randomstring": "^1.1.5",
     "solidity-coverage": "^0.6.0-beta.5",
     "solc": "0.5.10",
@@ -17,7 +18,7 @@
   "scripts": {
     "coverage": "solidity-coverage",
     "lint": "solium -d contracts",
-    "test": "truffle test"
+    "test": "scripts/executeTests.sh"
   },
   "repository": {
     "type": "git",
