@@ -27,12 +27,12 @@ contract Holdable is IHoldable, ERC20 {
     uint256 private _totalHeldBalance;
 
     function hold(
-        string calldata operationId,
+        string memory operationId,
         address to,
         address notary,
         uint256 value,
         uint256 timeToExpiration
-    ) external returns (bool)
+    ) public returns (bool)
     {
         require(to != address(0), "Payee address must not be zero address");
 
@@ -58,13 +58,13 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function holdFrom(
-        string calldata operationId,
+        string memory operationId,
         address from,
         address to,
         address notary,
         uint256 value,
         uint256 timeToExpiration
-    ) external returns (bool)
+    ) public returns (bool)
     {
         require(to != address(0), "Payee address must not be zero address");
         require(from != address(0), "Payer address must not be zero address");
@@ -91,7 +91,7 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function releaseHold(string calldata operationId) external returns (bool) {
+    function releaseHold(string memory operationId) public returns (bool) {
         Hold storage releasableHold = holds[operationId.toHash()];
 
         require(releasableHold.status == HoldStatusCode.Ordered, "A hold can only be released in status Ordered");
@@ -109,7 +109,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function executeHold(string calldata operationId, uint256 value) external returns (bool) {
+    function executeHold(string memory operationId, uint256 value) public returns (bool) {
         Hold storage executableHold = holds[operationId.toHash()];
 
         _setHoldToExecuted(operationId, value);
@@ -126,7 +126,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function renewHold(string calldata operationId, uint256 timeToExpiration) external returns (bool) {
+    function renewHold(string memory operationId, uint256 timeToExpiration) public returns (bool) {
         Hold storage renewableHold = holds[operationId.toHash()];
 
         require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
@@ -155,7 +155,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function retrieveHoldData(string calldata operationId) external view returns (
+    function retrieveHoldData(string memory operationId) public view returns (
         address from,
         address to,
         address notary,
@@ -174,23 +174,23 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function balanceOnHold(address account) external view returns (uint256) {
+    function balanceOnHold(address account) public view returns (uint256) {
         return heldBalance[account];
     }
 
-    function netBalanceOf(address account) external view returns (uint256) {
+    function netBalanceOf(address account) public view returns (uint256) {
         return super.balanceOf(account);
     }
 
-    function totalSupplyOnHold() external view returns (uint256) {
+    function totalSupplyOnHold() public view returns (uint256) {
         return _totalHeldBalance;
     }
 
-    function isHoldOperatorFor(address operator, address from) external view returns (bool) {
+    function isHoldOperatorFor(address operator, address from) public view returns (bool) {
         return operators[from][operator];
     }
 
-    function authorizeHoldOperator(address operator) external returns (bool) {
+    function authorizeHoldOperator(address operator) public returns (bool) {
         require (operators[msg.sender][operator] == false, "The operator is already authorized");
 
         operators[msg.sender][operator] = true;
@@ -198,7 +198,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function revokeHoldOperator(address operator) external returns (bool) {
+    function revokeHoldOperator(address operator) public returns (bool) {
         require (operators[msg.sender][operator] == true, "The operator is already not authorized");
 
         operators[msg.sender][operator] = false;
