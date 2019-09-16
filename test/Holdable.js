@@ -17,9 +17,11 @@ contract('Holdable', (accounts) => {
     const notary = accounts[5];
     const userC = accounts[6];
 
-    const RELEASED_BY_NOTARY = 3;
-    const RELEASED_BY_PAYEE = 4;
-    const RELEASED_BY_EXPIRATION = 5;
+    const RELEASED_BY_NOTARY = 4;
+    const RELEASED_BY_PAYEE = 5;
+    const RELEASED_BY_EXPIRATION = 6;
+    const EXECUTED_AND_KEPT_OPEN = 3;
+    
     const ONE_DAY = 60 * 60 * 24;
     const TWELVE_HOURS = 60 * 60 * 12;
 
@@ -403,6 +405,37 @@ contract('Holdable', (accounts) => {
                 'A hold can only be released in status Ordered'
             );
         });
+        
+    });
+
+    describe('releaseOpenExecutedHold', async() => {
+        beforeEach(async() => {
+            await holdable.hold(
+                operationId,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: payer}
+            );
+        });
+
+        it('release open executedHold', async() => {
+            const tx = await holdable.releaseHold(
+                operationId,
+                {from: notary}
+          );
+
+          truffleAssert.eventEmitted(tx, 'HoldReleased', (_event) => {
+              return _event.holdIssuer === payer &&
+                  _event.operationId === operationId &&
+                  _event.status.toNumber() === RELEASED_BY_NOTARY
+              ;
+          });
+
+         assert.strictEqual((await holdable.balanceOf(payer)).toNumber(), 3);
+        });
+
     });
 
     describe('executeHold', async() => {
@@ -563,6 +596,122 @@ contract('Holdable', (accounts) => {
                 ),
                 'A hold can only be executed in status Ordered'
             );
+        });
+        
+        it('should execute open hold and keep it open', async() => {
+
+            const tx1 = await holdable.executeHoldAndKeepOpen(
+                operationId,
+                1,
+                {from: notary}
+            );
+            
+
+            truffleAssert.eventEmitted(tx1, 'HoldExecutedAndKeptOpen', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.notary === notary &&
+                    _event.heldValue.toNumber() === 2 &&
+                    _event.transferredValue.toNumber() === 1
+                    ;
+            });
+
+            const heldBalance= await holdable.balanceOnHold(payer);
+
+            assert.strictEqual(
+                heldBalance.toNumber(),
+                2,
+                'HeldBalance is not correct after open hold executed'
+            );
+
+            const originalHold = await holdable.retrieveHoldData(operationId);
+
+        
+            assert.strictEqual(
+                originalHold.value.toNumber(),
+                2,
+                'Hold is not equal to the expected value'
+            );
+
+            assert.strictEqual(
+                originalHold.status.toNumber(),
+                EXECUTED_AND_KEPT_OPEN,
+                'Hold is not on ExecuteAndKeptOpen status'
+            );
+
+
+        });
+        it('should execute open hold and execute and close it on a second one with no open flag', async() => {
+
+
+    
+            const tx1 = await holdable.executeHoldAndKeepOpen(
+                operationId,
+                1,
+                {from: notary}
+            );
+            
+
+            truffleAssert.eventEmitted(tx1, 'HoldExecutedAndKeptOpen', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.notary === notary &&
+                    _event.heldValue.toNumber() === 2 &&
+                    _event.transferredValue.toNumber() === 1
+                    ;
+            });
+
+
+            const tx2 = await holdable.executeHold(
+                operationId,
+                2,
+                {from: notary}
+            );
+
+            truffleAssert.eventEmitted(tx2, 'HoldExecuted', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.notary === notary &&
+                    _event.heldValue.toNumber() === 2 &&
+                    _event.transferredValue.toNumber() === 2
+                    ;
+            });
+        });
+        it('should execute open hold and execute and close it on a second one with  open flag and total open amount', async() => {
+
+
+    
+            const tx1 = await holdable.executeHoldAndKeepOpen(
+                operationId,
+                1,
+                {from: notary}
+            );
+            
+
+            truffleAssert.eventEmitted(tx1, 'HoldExecutedAndKeptOpen', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.notary === notary &&
+                    _event.heldValue.toNumber() === 2 &&
+                    _event.transferredValue.toNumber() === 1
+                    ;
+            });
+
+
+            const tx2 = await holdable.executeHoldAndKeepOpen(
+                operationId,
+                2,
+                {from: notary}
+            );
+
+            truffleAssert.eventEmitted(tx2, 'HoldExecuted', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.notary === notary &&
+                    _event.heldValue.toNumber() === 2 &&
+                    _event.transferredValue.toNumber() === 2
+                    ;
+            });
         });
     });
 

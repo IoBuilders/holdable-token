@@ -27,6 +27,12 @@ The following diagram shows the sequence of the hold creation and execution.
 
 ![Holdable Token: Hold executed](http://www.plantuml.com/plantuml/png/SoWkIImgAStDuGejJYroLD2rKr3ooCz9IKpAILK8oSzEpLEoKiW02cYKv5ifWDGuQNAXgm3fyii76bHffG2ISYvAJIn9JU62Y64nKi5A8RKYDRcq91Ka0RSQOhwLGabHObvnMceHLel0YY7sk4BCIE5oICrB0Ve10000)
 
+### Open iterative hold executed
+
+The following diagram shows the sequence of the hold creation and execution.
+
+![Holdable Token: Open iterative hold executed](http://www.plantuml.com/plantuml/png/fP0n2W8n44Nxd6BOIWila49s5K4GjD43HFD5C2PXCWjwUtSCMCWMmhR__xmNfYtYMFf7CAS2xcYnf6QRWdVd03gcEs9ZAML4kWtfJ98b7QxcvdUcJ_T97ByiQRLcE84tDHlXaYKySUa5MdJHxu1y65JVhrIL9M4NonKywloCgt9JSPMLHLd_wYSxJOlezOvl)
+
 ### Hold released by notary
 
 The following diagram shows the sequence of a hold creation and release by the notary.
@@ -44,6 +50,18 @@ The following diagram shows the sequence of a hold creation and release by the p
 The following diagram shows the sequence of a hold creation and release after it has expired. After a hold has expired it can be released by anobody. Here in the sequence by a not involved third-party user UserC
 
 ![Holdable Token: Hold released on expiration](http://www.plantuml.com/plantuml/png/SoWkIImgAStDuGejJYroLD2rKr3ooCz9IKpAILK8oSzEpLEoKiW02cYKv5ifWDGuQNAXgm3fyii76bHffG2ISYvAJIn9JG4RwOpDI0KhXQBKdDJ4ubIG15RpmCw1ArF8ICr9KKZCpI_DAy6d72GJ1D6ImkMGcfS2z1a0)
+
+### Hold released on expiration
+
+The following diagram shows the sequence of a hold creation and release after it has expired. After a hold has expired it can be released by anobody. Here in the sequence by a not involved third-party user UserC
+
+![Holdable Token: Hold released on expiration](http://www.plantuml.com/plantuml/png/SoWkIImgAStDuGejJYroLD2rKr3ooCz9IKpAILK8oSzEpLEoKiW02cYKv5ifWDGuQNAXgm3fyii76bHffG2ISYvAJIn9JG4RwOpDI0KhXQBKdDJ4ubIG15RpmCw1ArF8ICr9KKZCpI_DAy6d72GJ1D6ImkMGcfS2z1a0)
+
+### Hold executed on total amount reached
+
+The following diagram shows the sequence of a hold creation and release after an open hold has fulfilled all held money.
+
+![Holdable Token: Hold executed on total open held amount reached](http://www.plantuml.com/plantuml/png/hOv12i8m44NtESNGLRlm0bb8gmY2e21wWDXyAPXcGZe1lRt6W0lfmeNR-N_U--qa9aeQdJfFY1qjbbHjsLbpSQ0Jt-0hJHpWQNXTQs5DkRXgr7Sjl-vPJ7neoj4wmWYiAhSPBcd27NqIvA3pTWU4Gu3_J2agJHADdww8iyvtkIWt1LTOGJBhdtggXSMuRkJavGZJ3x3DhvjK2s_Jw9u0)
 
 ## State diagram
 
