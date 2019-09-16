@@ -130,10 +130,10 @@ contract Holdable is IHoldable, ERC20 {
 
 
         if (keepOpenIfHoldHasBalance && ((executableHold.value - value) > 0)) {
-            _decreaseHeldBalanceWithDefinedValue(operationId, value);
+            _decreaseHeldBalance(operationId, value);
             _setHoldToExecutedAndKeptOpen(operationId, value); 
         }else {
-            _decreaseHeldBalanceWithDefinedValue(operationId, executableHold.value);
+            _decreaseHeldBalance(operationId, executableHold.value);
             _setHoldToExecuted(operationId, value);
         }
         
@@ -328,7 +328,7 @@ contract Holdable is IHoldable, ERC20 {
             );
     }
 
-    function _decreaseHeldBalanceWithDefinedValue(string memory operationId, uint256 value) internal {
+    function _decreaseHeldBalance(string memory operationId, uint256 value) internal {
         Hold storage executableHold = holds[operationId.toHash()];
         heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
         _totalHeldBalance = _totalHeldBalance.sub(value);
