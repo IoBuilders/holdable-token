@@ -4,7 +4,7 @@ UserA -> "Holdable Token": open hold(to: UserB)
 Notary-> "Holdable Token" : executeHoldAndKeepOpen
 UserA -> UserB: transfer
 "Holdable Token" -> UserA: HoldExecutedAndKeptOpen
-Notary-> "Holdable Token" : executeHoldAndKeepOpen
-UserA -> UserB: transfer (totalAmountReached)
+Notary-> "Holdable Token" : executeHold
+UserA -> UserB: transfer
 "Holdable Token" -> UserA: HoldExecuted
 @enduml
