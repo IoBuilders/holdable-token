@@ -79,6 +79,26 @@ To run the unit tests execute `npm test`.
 
 To run the code coverage simply execute `npm run coverage`
 
+## Deployment
+
+To deploy a new version to NPM the version in `package.json` has to be increased and a tag has to be created on the **master** branch. This can be done in one step with **one** of the following commands
+```sh
+# new patch version
+npm version patch
+
+# new minor version
+npm version minor
+
+# new major version
+npm version major
+```
+
+Afterwards the changes and the tags have to be pushed to the GitHub repository with:
+```sh
+git push origin --tags
+```
+
 [Truffle]: https://truffleframework.com/docs/truffle/quickstart
 [Embark]: https://embark.status.im/docs/quick_start.html
 [Buidler]: https://buidler.dev/guides/#getting-started
+
