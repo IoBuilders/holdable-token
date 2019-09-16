@@ -2,12 +2,20 @@ sudo: required
 dist: xenial
 language: node_js
 node_js:
-  - '10'
+- '10'
 install:
-  - npm install -g coveralls
-  - npm install
+- npm install -g coveralls
+- npm install
 script:
-  - npm run lint
-  - npm test
+- npm run lint
+- npm test
 after_script:
-  - npm run coverage && cat coverage/lcov.info | coveralls
+- npm run coverage && cat coverage/lcov.info | coveralls
+deploy:
+  provider: npm
+  email: tech@io.builders
+  api_key:
+    secure: B3E58zBW4haWX17aVem3Nv6GvvpcOEfe10pG2sxFOkoAIBhrE8U4FCeT7dSVWvRBfqGWbmFNp8INnT41FZlw9GbTb7zThQAa7KfJ0+GVjZ/0zuNzx5lO/raW2MVnB/GLeaEVResU5UDB2o6ZgrkkJbFMjuFEpDHl2WrjBmDdcud+6lgTOPjoTDuX7e8P+Vgj5yQ8iQ61NQH9CxHzvFGCf9gL4vLvvy8rcMKQ59uWU5Pf6FkiELmkkCkXfdCvk5aHlwZhsUaGjx6MpHxsFFeIvZVjAuIfLXKVBM54fLXkWte4nnUxRxjISW8oSMqwihY3wnNl4GgDcYZx82zqrwMh+q0b4GfGZaIgEAjFnPpySdqfhq8ctXd6hUUmjX0yHwUL3kepRFmPuELGgJSS08NsIUnGDHiEOUCOx67dFOMZnJonqFe+deCF5H4ve+qPy0TFyHLnQNvp3a71Vm/o4n9nzudBHEqSoaTgwDFeHO652na2KsKSvnQT9SESzZSOdVWb3CGkYMRQw+K0vpM/77xEv1sZl6W4PKogn/K3TvZASUVLss99jLjcnN2deMfzpGUKStpYqiTap1MFoGKZK1IOS2jJxhabDfj5xJHbp1v2YJnFlfPq1z2vRMqX9D80bDfVVvQEEPgzGHNYeGfrBtT2IsvcMQtFDvzNDwTjDVhMrtE=
+  on:
+    tags: true
+    branch: master
