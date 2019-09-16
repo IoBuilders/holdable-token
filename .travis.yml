@@ -2,15 +2,19 @@ sudo: required
 dist: xenial
 language: node_js
 node_js:
-- '10'
+  - '10'
+
 install:
-- npm install -g coveralls
-- npm install
+  - npm install -g coveralls
+  - npm install
+
 script:
-- npm run lint
-- npm test
+  - npm run lint
+  - npm test
+
 after_script:
-- npm run coverage && cat coverage/lcov.info | coveralls
+  - npm run coverage && cat coverage/lcov.info | coverall
+
 deploy:
   provider: npm
   email: tech@io.builders
