@@ -5,6 +5,7 @@ interface IHoldable {
         Nonexistent,
         Ordered,
         Executed,
+        ExecutedAndKeptOpen,
         ReleasedByNotary,
         ReleasedByPayee,
         ReleasedOnExpiration
@@ -27,6 +28,7 @@ interface IHoldable {
     ) external returns (bool);
     function releaseHold(string calldata operationId) external returns (bool);
     function executeHold(string calldata operationId, uint256 value) external returns (bool);
+    function executeHoldAndKeepOpen(string calldata operationId, uint256 value) external returns (bool);
     function renewHold(string calldata operationId, uint256 timeToExpiration) external returns (bool);
     function retrieveHoldData(string calldata operationId) external view returns (
         address from,
@@ -55,6 +57,8 @@ interface IHoldable {
         uint256 expiration
     );
     event HoldExecuted(address indexed holdIssuer, string operationId, address indexed notary, uint256 heldValue, uint256 transferredValue);
+    event HoldExecutedAndKeptOpen(address indexed holdIssuer, string operationId, address indexed notary, uint256 heldValue,
+    uint256 transferredValue);
     event HoldReleased(address indexed holdIssuer, string operationId, HoldStatusCode status);
     event HoldRenewed(address indexed holdIssuer, string operationId, uint256 oldExpiration, uint256 newExpiration);
     event AuthorizedHoldOperator(address indexed operator, address indexed account);

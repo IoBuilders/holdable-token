@@ -1,0 +1,10 @@
+@startuml
+UserA -> "Holdable Token": open hold(to: UserB)
+"Holdable Token" -> Notary: HoldCreated
+Notary-> "Holdable Token" : executeHoldAndKeepOpen
+UserA -> UserB: transfer
+"Holdable Token" -> UserA: HoldExecutedAndKeptOpen
+Notary-> "Holdable Token" : executeHold
+UserA -> UserB: transfer
+"Holdable Token" -> UserA: HoldExecuted
+@enduml

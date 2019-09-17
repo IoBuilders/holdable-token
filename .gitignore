@@ -19,6 +19,4 @@ build/
 # IntelliJ IDE
 .idea
 
-
-#Vstudio
 .vscode/
