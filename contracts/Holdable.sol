@@ -324,11 +324,12 @@ contract Holdable is IHoldable, ERC20 {
             executableHold.notary,
             executableHold.value,
             value
-            );
+        );
     }
 
     function _decreaseHeldBalance(string memory operationId, uint256 value) internal {
         Hold storage executableHold = holds[operationId.toHash()];
+
         heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
         _totalHeldBalance = _totalHeldBalance.sub(value);
     }

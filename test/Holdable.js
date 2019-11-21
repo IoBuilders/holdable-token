@@ -21,7 +21,7 @@ contract('Holdable', (accounts) => {
     const RELEASED_BY_PAYEE = 5;
     const RELEASED_BY_EXPIRATION = 6;
     const EXECUTED_AND_KEPT_OPEN = 3;
-    
+
     const ONE_DAY = 60 * 60 * 24;
     const TWELVE_HOURS = 60 * 60 * 12;
 
@@ -405,7 +405,6 @@ contract('Holdable', (accounts) => {
                 'A hold can only be released in status Ordered'
             );
         });
-        
     });
 
     describe('releaseOpenExecutedHold', async() => {
@@ -545,8 +544,11 @@ contract('Holdable', (accounts) => {
             const balanceOfPayer = await holdable.balanceOf(payer);
             const balanceOfPayee = await holdable.balanceOf(payee);
 
-           assert.strictEqual(balanceOfPayer.toNumber(), 0);
-           assert.strictEqual(balanceOfPayee.toNumber(), 3);
+            assert.strictEqual(balanceOfPayer.toNumber(), 0);
+            assert.strictEqual(balanceOfPayee.toNumber(), 3);
+
+            const balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 0);
 
             truffleAssert.eventEmitted(tx, 'HoldExecuted', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -570,6 +572,9 @@ contract('Holdable', (accounts) => {
 
             assert.strictEqual(balanceOfPayer.toNumber(), 2);
             assert.strictEqual(balanceOfPayee.toNumber(), 1);
+
+            const balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 0);
 
             truffleAssert.eventEmitted(tx, 'HoldExecuted', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -597,7 +602,7 @@ contract('Holdable', (accounts) => {
                 'A hold can only be executed in status Ordered'
             );
         });
-        
+
         it('should execute open hold and keep it open', async() => {
 
             const tx1 = await holdable.executeHoldAndKeepOpen(
@@ -605,7 +610,6 @@ contract('Holdable', (accounts) => {
                 1,
                 {from: notary}
             );
-            
 
             truffleAssert.eventEmitted(tx1, 'HoldExecutedAndKeptOpen', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -616,7 +620,7 @@ contract('Holdable', (accounts) => {
                     ;
             });
 
-            const heldBalance= await holdable.balanceOnHold(payer);
+            const heldBalance = await holdable.balanceOnHold(payer);
 
             assert.strictEqual(
                 heldBalance.toNumber(),
@@ -626,7 +630,6 @@ contract('Holdable', (accounts) => {
 
             const originalHold = await holdable.retrieveHoldData(operationId);
 
-        
             assert.strictEqual(
                 originalHold.value.toNumber(),
                 2,
@@ -639,18 +642,17 @@ contract('Holdable', (accounts) => {
                 'Hold is not on ExecuteAndKeptOpen status'
             );
 
-
         });
+
         it('should execute open hold and execute and close it on a second one with no open flag', async() => {
-
-
-    
             const tx1 = await holdable.executeHoldAndKeepOpen(
                 operationId,
                 1,
                 {from: notary}
             );
-            
+
+            let balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 2);
 
             truffleAssert.eventEmitted(tx1, 'HoldExecutedAndKeptOpen', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -661,12 +663,14 @@ contract('Holdable', (accounts) => {
                     ;
             });
 
-
             const tx2 = await holdable.executeHold(
                 operationId,
                 2,
                 {from: notary}
             );
+
+            balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 0);
 
             truffleAssert.eventEmitted(tx2, 'HoldExecuted', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -678,15 +682,14 @@ contract('Holdable', (accounts) => {
             });
         });
         it('should execute open hold and execute and close it on a second one with  open flag and total open amount', async() => {
-
-
-    
             const tx1 = await holdable.executeHoldAndKeepOpen(
                 operationId,
                 1,
                 {from: notary}
             );
-            
+
+            let balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 2);
 
             truffleAssert.eventEmitted(tx1, 'HoldExecutedAndKeptOpen', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -697,12 +700,14 @@ contract('Holdable', (accounts) => {
                     ;
             });
 
-
             const tx2 = await holdable.executeHoldAndKeepOpen(
                 operationId,
                 2,
                 {from: notary}
             );
+
+            balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 0);
 
             truffleAssert.eventEmitted(tx2, 'HoldExecuted', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -819,6 +824,9 @@ contract('Holdable', (accounts) => {
                 'Hold was not renewed correctly'
             );
 
+            const balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+
             truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
                 return _event.holdIssuer === payer &&
                     _event.operationId === operationId &&
@@ -843,6 +851,9 @@ contract('Holdable', (accounts) => {
                 0,
                 'Hold was not renewed correctly'
             );
+
+            const balanceOnHoldOfPayer = await holdable.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
 
             truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
                 return _event.holdIssuer === payer &&
