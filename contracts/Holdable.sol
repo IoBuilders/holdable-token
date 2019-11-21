@@ -94,7 +94,10 @@ contract Holdable is IHoldable, ERC20 {
     function releaseHold(string memory operationId) public returns (bool) {
         Hold storage releasableHold = holds[operationId.toHash()];
 
-        require(releasableHold.status == HoldStatusCode.Ordered || releasableHold.status == HoldStatusCode.ExecutedAndKeptOpen,"A hold can only be released in status Ordered or ExecutedAndKeptOpen");
+        require(
+            releasableHold.status == HoldStatusCode.Ordered || releasableHold.status == HoldStatusCode.ExecutedAndKeptOpen,
+            "A hold can only be released in status Ordered or ExecutedAndKeptOpen"
+        );
         require(
             _isExpired(releasableHold.expiration) ||
             (msg.sender == releasableHold.notary) ||
@@ -109,42 +112,13 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function executeHold(string memory operationId, uint256 value) public returns (bool) { 
+    function executeHold(string memory operationId, uint256 value) public returns (bool) {
         return _executeHold(operationId, value, false);
     }
 
     function executeHoldAndKeepOpen(string memory operationId, uint256 value) public returns (bool) {
         return _executeHold(operationId, value, true);
     }
-
-
-    function _executeHold(string memory operationId, uint256 value, bool keepOpenIfHoldHasBalance) internal returns (bool) {
-
-        Hold storage executableHold = holds[operationId.toHash()];
-
-        require(executableHold.status == HoldStatusCode.Ordered || executableHold.status == HoldStatusCode.ExecutedAndKeptOpen,"A hold can only be executed in status Ordered or ExecutedAndKeptOpen");
-        require(value != 0, "Value must be greater than zero");
-        require(executableHold.notary == msg.sender, "The hold can only be executed by the notary");
-        require(!_isExpired(executableHold.expiration), "The hold has already expired");
-        require(value <= executableHold.value, "The value should be equal or less than the held amount");
-
-
-        if (keepOpenIfHoldHasBalance && ((executableHold.value - value) > 0)) {
-            _decreaseHeldBalance(operationId, value);
-            _setHoldToExecutedAndKeptOpen(operationId, value); 
-        }else {
-            _decreaseHeldBalance(operationId, executableHold.value);
-            _setHoldToExecuted(operationId, value);
-        }
-        
-  
-        
-
-        _transfer(executableHold.origin, executableHold.target, value);
-
-        return true;
-    }
-
 
     function renewHold(string memory operationId, uint256 timeToExpiration) public returns (bool) {
         Hold storage renewableHold = holds[operationId.toHash()];
@@ -301,12 +275,37 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
+    function _executeHold(string memory operationId, uint256 value, bool keepOpenIfHoldHasBalance) internal returns (bool) {
+        Hold storage executableHold = holds[operationId.toHash()];
+
+        require(
+            executableHold.status == HoldStatusCode.Ordered || executableHold.status == HoldStatusCode.ExecutedAndKeptOpen,
+            "A hold can only be executed in status Ordered or ExecutedAndKeptOpen"
+        );
+        require(value != 0, "Value must be greater than zero");
+        require(executableHold.notary == msg.sender, "The hold can only be executed by the notary");
+        require(!_isExpired(executableHold.expiration), "The hold has already expired");
+        require(value <= executableHold.value, "The value should be equal or less than the held amount");
+
+        if (keepOpenIfHoldHasBalance && ((executableHold.value - value) > 0)) {
+            _decreaseHeldBalance(operationId, value);
+            _setHoldToExecutedAndKeptOpen(operationId, value);
+        } else {
+            _decreaseHeldBalance(operationId, executableHold.value);
+            _setHoldToExecuted(operationId, value);
+        }
+
+        _transfer(executableHold.origin, executableHold.target, value);
+
+        return true;
+    }
+
     function _setHoldToExecuted(string memory operationId, uint256 value) internal {
         Hold storage executableHold = holds[operationId.toHash()];
         executableHold.status = HoldStatusCode.Executed;
 
         emit HoldExecuted(
-            executableHold.issuer, 
+            executableHold.issuer,
             operationId,
             executableHold.notary,
             executableHold.value,
