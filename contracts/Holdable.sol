@@ -36,16 +36,6 @@ contract Holdable is IHoldable, ERC20 {
     {
         require(to != address(0), "Payee address must not be zero address");
 
-        emit HoldCreated(
-            msg.sender,
-            operationId,
-            msg.sender,
-            to,
-            notary,
-            value,
-            timeToExpiration
-        );
-
         return _hold(
             operationId,
             msg.sender,
@@ -53,7 +43,7 @@ contract Holdable is IHoldable, ERC20 {
             to,
             notary,
             value,
-            timeToExpiration
+            _computeExpiration(timeToExpiration)
         );
     }
 
@@ -70,16 +60,6 @@ contract Holdable is IHoldable, ERC20 {
         require(from != address(0), "Payer address must not be zero address");
         require(operators[from][msg.sender], "This operator is not authorized");
 
-        emit HoldCreated(
-            msg.sender,
-            operationId,
-            from,
-            to,
-            notary,
-            value,
-            timeToExpiration
-        );
-
         return _hold(
             operationId,
             msg.sender,
@@ -87,7 +67,7 @@ contract Holdable is IHoldable, ERC20 {
             to,
             notary,
             value,
-            timeToExpiration
+            _computeExpiration(timeToExpiration)
         );
     }
 
@@ -227,7 +207,7 @@ contract Holdable is IHoldable, ERC20 {
         address to,
         address notary,
         uint256 value,
-        uint256 timeToExpiration
+        uint256 expiration
     ) internal returns (bool)
     {
         Hold storage newHold = holds[operationId.toHash()];
@@ -244,14 +224,20 @@ contract Holdable is IHoldable, ERC20 {
         newHold.notary = notary;
         newHold.value = value;
         newHold.status = HoldStatusCode.Ordered;
-
-        if (timeToExpiration != 0) {
-            /* solium-disable-next-line security/no-block-members */
-            newHold.expiration = now.add(timeToExpiration);
-        }
+        newHold.expiration = expiration;
 
         heldBalance[from] = heldBalance[from].add(value);
         _totalHeldBalance = _totalHeldBalance.add(value);
+
+        emit HoldCreated(
+            issuer,
+            operationId,
+            from,
+            to,
+            notary,
+            value,
+            expiration
+        );
 
         return true;
     }
@@ -332,5 +318,16 @@ contract Holdable is IHoldable, ERC20 {
 
         heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
         _totalHeldBalance = _totalHeldBalance.sub(value);
+    }
+
+    function _computeExpiration(uint256 _timeToExpiration) private view returns (uint256) {
+        uint256 expiration = 0;
+
+        if (_timeToExpiration != 0) {
+            /* solium-disable-next-line security/no-block-members */
+            expiration = now.add(_timeToExpiration);
+        }
+
+        return expiration;
     }
 }
