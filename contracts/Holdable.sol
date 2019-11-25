@@ -325,7 +325,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _setHoldToExecuted(string memory operationId, uint256 value, uint256 heldBalanceDecrease) private {
+    function _setHoldToExecuted(string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
         _decreaseHeldBalance(operationId, heldBalanceDecrease);
 
         Hold storage executableHold = holds[operationId.toHash()];
@@ -340,7 +340,7 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _setHoldToExecutedAndKeptOpen(string memory operationId, uint256 value, uint256 heldBalanceDecrease) private {
+    function _setHoldToExecutedAndKeptOpen(string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
         _decreaseHeldBalance(operationId, heldBalanceDecrease);
 
         Hold storage executableHold = holds[operationId.toHash()];
