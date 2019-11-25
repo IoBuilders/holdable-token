@@ -34,7 +34,7 @@ contract Holdable is IHoldable, ERC20 {
         uint256 timeToExpiration
     ) public returns (bool)
     {
-        require(to != address(0), "Payee address must not be zero address");
+        _checkHold(to);
 
         return _hold(
             operationId,
@@ -56,9 +56,7 @@ contract Holdable is IHoldable, ERC20 {
         uint256 timeToExpiration
     ) public returns (bool)
     {
-        require(to != address(0), "Payee address must not be zero address");
-        require(from != address(0), "Payer address must not be zero address");
-        require(operators[from][msg.sender], "This operator is not authorized");
+        _checkHoldFrom(to, from);
 
         return _hold(
             operationId,
@@ -68,6 +66,51 @@ contract Holdable is IHoldable, ERC20 {
             notary,
             value,
             _computeExpiration(timeToExpiration)
+        );
+    }
+
+    function holdWithExpirationDate(
+        string memory operationId,
+        address to,
+        address notary,
+        uint256 value,
+        uint256 expiration
+    ) public returns (bool)
+    {
+        _checkHold(to);
+        require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+
+        return _hold(
+            operationId,
+            msg.sender,
+            msg.sender,
+            to,
+            notary,
+            value,
+            expiration
+        );
+    }
+
+    function holdFromWithExpirationDate(
+        string memory operationId,
+        address from,
+        address to,
+        address notary,
+        uint256 value,
+        uint256 expiration
+    ) public returns (bool)
+    {
+        _checkHoldFrom(to, from);
+        require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+
+        return _hold(
+            operationId,
+            msg.sender,
+            from,
+            to,
+            notary,
+            value,
+            expiration
         );
     }
 
@@ -85,11 +128,7 @@ contract Holdable is IHoldable, ERC20 {
             "A not expired hold can only be released by the notary or the payee"
         );
 
-        _releaseHold(operationId);
-
-        emit HoldReleased(releasableHold.issuer, operationId, releasableHold.status);
-
-        return true;
+        return _releaseHold(operationId);
     }
 
     function executeHold(string memory operationId, uint256 value) public returns (bool) {
@@ -101,32 +140,16 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function renewHold(string memory operationId, uint256 timeToExpiration) public returns (bool) {
-        Hold storage renewableHold = holds[operationId.toHash()];
+        _checkRenewableHold(operationId);
 
-        require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
-        require(!_isExpired(renewableHold.expiration), "An expired hold can not be renewed");
-        require(
-            renewableHold.origin == msg.sender || renewableHold.issuer == msg.sender,
-            "The hold can only be renewed by the issuer or the payer"
-        );
+        return _renewHold(operationId, _computeExpiration(timeToExpiration));
+    }
 
-        uint256 oldExpiration = renewableHold.expiration;
+    function renewHoldWithExpirationDate(string memory operationId, uint256 expiration) public returns (bool) {
+        _checkRenewableHold(operationId);
+        require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
 
-        if (timeToExpiration == 0) {
-            renewableHold.expiration = 0;
-        } else {
-            /* solium-disable-next-line security/no-block-members */
-            renewableHold.expiration = now.add(timeToExpiration);
-        }
-
-        emit HoldRenewed(
-            renewableHold.issuer,
-            operationId,
-            oldExpiration,
-            renewableHold.expiration
-        );
-
-        return true;
+        return _renewHold(operationId, expiration);
     }
 
     function retrieveHoldData(string memory operationId) public view returns (
@@ -258,6 +281,8 @@ contract Holdable is IHoldable, ERC20 {
         heldBalance[releasableHold.origin] = heldBalance[releasableHold.origin].sub(releasableHold.value);
         _totalHeldBalance = _totalHeldBalance.sub(releasableHold.value);
 
+        emit HoldReleased(releasableHold.issuer, operationId, releasableHold.status);
+
         return true;
     }
 
@@ -274,11 +299,9 @@ contract Holdable is IHoldable, ERC20 {
         require(value <= executableHold.value, "The value should be equal or less than the held amount");
 
         if (keepOpenIfHoldHasBalance && ((executableHold.value - value) > 0)) {
-            _decreaseHeldBalance(operationId, value);
-            _setHoldToExecutedAndKeptOpen(operationId, value);
+            _setHoldToExecutedAndKeptOpen(operationId, value, value);
         } else {
-            _decreaseHeldBalance(operationId, executableHold.value);
-            _setHoldToExecuted(operationId, value);
+            _setHoldToExecuted(operationId, value, executableHold.value);
         }
 
         _transfer(executableHold.origin, executableHold.target, value);
@@ -286,7 +309,25 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _setHoldToExecuted(string memory operationId, uint256 value) internal {
+    function _renewHold(string memory operationId, uint256 expiration) internal returns (bool) {
+        Hold storage renewableHold = holds[operationId.toHash()];
+
+        uint256 oldExpiration = renewableHold.expiration;
+        renewableHold.expiration = expiration;
+
+        emit HoldRenewed(
+            renewableHold.issuer,
+            operationId,
+            oldExpiration,
+            expiration
+        );
+
+        return true;
+    }
+
+    function _setHoldToExecuted(string memory operationId, uint256 value, uint256 heldBalanceDecrease) private {
+        _decreaseHeldBalance(operationId, heldBalanceDecrease);
+
         Hold storage executableHold = holds[operationId.toHash()];
         executableHold.status = HoldStatusCode.Executed;
 
@@ -299,7 +340,9 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _setHoldToExecutedAndKeptOpen(string memory operationId, uint256 value) internal {
+    function _setHoldToExecutedAndKeptOpen(string memory operationId, uint256 value, uint256 heldBalanceDecrease) private {
+        _decreaseHeldBalance(operationId, heldBalanceDecrease);
+
         Hold storage executableHold = holds[operationId.toHash()];
         executableHold.status = HoldStatusCode.ExecutedAndKeptOpen;
         executableHold.value = executableHold.value.sub(value);
@@ -313,7 +356,7 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _decreaseHeldBalance(string memory operationId, uint256 value) internal {
+    function _decreaseHeldBalance(string memory operationId, uint256 value) private {
         Hold storage executableHold = holds[operationId.toHash()];
 
         heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
@@ -329,5 +372,26 @@ contract Holdable is IHoldable, ERC20 {
         }
 
         return expiration;
+    }
+
+    function _checkHold(address to) private pure {
+        require(to != address(0), "Payee address must not be zero address");
+    }
+
+    function _checkHoldFrom(address to, address from) private view {
+        require(to != address(0), "Payee address must not be zero address");
+        require(from != address(0), "Payer address must not be zero address");
+        require(operators[from][msg.sender], "This operator is not authorized");
+    }
+
+    function _checkRenewableHold(string memory operationId) private view {
+        Hold storage renewableHold = holds[operationId.toHash()];
+
+        require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
+        require(!_isExpired(renewableHold.expiration), "An expired hold can not be renewed");
+        require(
+            renewableHold.origin == msg.sender || renewableHold.issuer == msg.sender,
+            "The hold can only be renewed by the issuer or the payer"
+        );
     }
 }
