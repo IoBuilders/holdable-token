@@ -1,13 +1,11 @@
 pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "./IHoldable.sol";
 import "solidity-string-util/contracts/StringUtil.sol";
 
 
 contract Holdable is IHoldable, ERC20 {
-
-    using SafeMath for uint256;
     using StringUtil for string;
 
     struct Hold {
@@ -78,7 +76,7 @@ contract Holdable is IHoldable, ERC20 {
     ) public returns (bool)
     {
         _checkHold(to);
-        require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+        _checkExpiration(expiration);
 
         return _hold(
             operationId,
@@ -101,7 +99,7 @@ contract Holdable is IHoldable, ERC20 {
     ) public returns (bool)
     {
         _checkHoldFrom(to, from);
-        require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+        _checkExpiration(expiration);
 
         return _hold(
             operationId,
@@ -147,7 +145,7 @@ contract Holdable is IHoldable, ERC20 {
 
     function renewHoldWithExpirationDate(string memory operationId, uint256 expiration) public returns (bool) {
         _checkRenewableHold(operationId);
-        require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+        _checkExpiration(expiration);
 
         return _renewHold(operationId, expiration);
     }
@@ -393,5 +391,9 @@ contract Holdable is IHoldable, ERC20 {
             renewableHold.origin == msg.sender || renewableHold.issuer == msg.sender,
             "The hold can only be renewed by the issuer or the payer"
         );
+    }
+
+    function _checkExpiration(uint256 expiration) private view {
+        require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
     }
 }
