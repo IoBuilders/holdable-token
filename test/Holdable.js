@@ -128,7 +128,8 @@ contract('Holdable', (accounts) => {
                     4,
                     0,
                     {from: payer}
-                )
+                ),
+              'Amount of the hold can\'t be greater than the balance of the origin'
             );
         });
 
@@ -154,6 +155,29 @@ contract('Holdable', (accounts) => {
                 notary,
                 1,
                 blockTimestamp + ONE_DAY
+            );
+        });
+
+        it.only('should successfully create a perpetual hold and emit a HoldCreated event', async() => {
+            const tx = await holdableInterface.hold(
+              operationId,
+              payee,
+              notary,
+              1,
+              0,
+              {from: payer}
+            );
+
+            await verifyHoldCreated(
+              holdableInterface,
+              tx,
+              operationId,
+              payer,
+              payer,
+              payee,
+              notary,
+              1,
+              0
             );
         });
     });
@@ -276,7 +300,8 @@ contract('Holdable', (accounts) => {
                     4,
                     0,
                     {from: authorizedOperator}
-                )
+                ),
+              'Amount of the hold can\'t be greater than the balance of the origin'
             );
         });
 
@@ -290,11 +315,38 @@ contract('Holdable', (accounts) => {
                     1,
                     0,
                     {from: unauthorizedOperator}
-                )
+                ),
+              'This operator is not authorized'
             );
         });
 
         it('should successfully create a hold and emit a HoldCreated event', async() => {
+            const tx = await holdableInterface.holdFrom(
+                operationId,
+                payer,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: authorizedOperator}
+            );
+
+            const blockTimestamp = await getBlockTimestamp()
+
+            await verifyHoldCreated(
+                holdableInterface,
+                tx,
+                operationId,
+                authorizedOperator,
+                payer,
+                payee,
+                notary,
+                1,
+                blockTimestamp + ONE_DAY
+            );
+        });
+
+        it('should successfully create a perpetual hold and emit a HoldCreated event', async() => {
             const tx = await holdableInterface.holdFrom(
                 operationId,
                 payer,
@@ -408,7 +460,8 @@ contract('Holdable', (accounts) => {
                 4,
                 0,
                 {from: payer}
-              )
+              ),
+              'Amount of the hold can\'t be greater than the balance of the origin'
             );
         });
 
@@ -432,9 +485,11 @@ contract('Holdable', (accounts) => {
               payee,
               notary,
               1,
-              0,
+              ONE_DAY,
               {from: payer}
             );
+
+            const blockTimestamp = await getBlockTimestamp()
 
             await verifyHoldCreated(
                 holdableInterface,
@@ -445,7 +500,30 @@ contract('Holdable', (accounts) => {
                 payee,
                 notary,
                 1,
-                0
+                blockTimestamp + ONE_DAY
+            );
+        });
+
+        it('should successfully create a perpetual hold and emit a HoldCreated event', async() => {
+            const tx = await holdableInterface.holdWithExpirationDate(
+              operationId,
+              payee,
+              notary,
+              1,
+              0,
+              {from: payer}
+            );
+
+            await verifyHoldCreated(
+              holdableInterface,
+              tx,
+              operationId,
+              payer,
+              payer,
+              payee,
+              notary,
+              1,
+              0
             );
         });
     });
@@ -568,7 +646,8 @@ contract('Holdable', (accounts) => {
                 4,
                 0,
                 {from: authorizedOperator}
-              )
+              ),
+              'Amount of the hold can\'t be greater than the balance of the origin'
             );
         });
 
@@ -597,7 +676,8 @@ contract('Holdable', (accounts) => {
                 1,
                 0,
                 {from: unauthorizedOperator}
-              )
+              ),
+              'This operator is not authorized'
             );
         });
 
@@ -625,6 +705,30 @@ contract('Holdable', (accounts) => {
               notary,
               1,
               expiration
+            );
+        });
+
+        it('should successfully create a perpetual hold and emit a HoldCreated event', async() => {
+            const tx = await holdableInterface.holdFromWithExpirationDate(
+              operationId,
+              payer,
+              payee,
+              notary,
+              1,
+              0,
+              {from: authorizedOperator}
+            );
+
+            await verifyHoldCreated(
+              holdableInterface,
+              tx,
+              operationId,
+              authorizedOperator,
+              payer,
+              payee,
+              notary,
+              1,
+              0
             );
         });
     });
