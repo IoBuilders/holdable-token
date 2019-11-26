@@ -126,7 +126,7 @@ contract Holdable is IHoldable, ERC20 {
             "A not expired hold can only be released by the notary or the payee"
         );
 
-        return _releaseHold(operationId);
+        return _releaseHold(releasableHold, operationId);
     }
 
     function executeHold(string memory operationId, uint256 value) public returns (bool) {
@@ -138,16 +138,20 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function renewHold(string memory operationId, uint256 timeToExpiration) public returns (bool) {
-        _checkRenewableHold(operationId);
+        Hold storage renewableHold = holds[operationId.toHash()];
 
-        return _renewHold(operationId, _computeExpiration(timeToExpiration));
+        _checkRenewableHold(renewableHold);
+
+        return _renewHold(renewableHold, operationId, _computeExpiration(timeToExpiration));
     }
 
     function renewHoldWithExpirationDate(string memory operationId, uint256 expiration) public returns (bool) {
-        _checkRenewableHold(operationId);
+        Hold storage renewableHold = holds[operationId.toHash()];
+
+        _checkRenewableHold(renewableHold);
         _checkExpiration(expiration);
 
-        return _renewHold(operationId, expiration);
+        return _renewHold(renewableHold, operationId, expiration);
     }
 
     function retrieveHoldData(string memory operationId) public view returns (
@@ -263,9 +267,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _releaseHold(string memory operationId) internal returns (bool) {
-        Hold storage releasableHold = holds[operationId.toHash()];
-
+    function _releaseHold(Hold storage releasableHold, string memory operationId) internal returns (bool) {
         if (_isExpired(releasableHold.expiration)) {
             releasableHold.status = HoldStatusCode.ReleasedOnExpiration;
         } else {
@@ -297,9 +299,9 @@ contract Holdable is IHoldable, ERC20 {
         require(value <= executableHold.value, "The value should be equal or less than the held amount");
 
         if (keepOpenIfHoldHasBalance && ((executableHold.value - value) > 0)) {
-            _setHoldToExecutedAndKeptOpen(operationId, value, value);
+            _setHoldToExecutedAndKeptOpen(executableHold, operationId, value, value);
         } else {
-            _setHoldToExecuted(operationId, value, executableHold.value);
+            _setHoldToExecuted(executableHold, operationId, value, executableHold.value);
         }
 
         _transfer(executableHold.origin, executableHold.target, value);
@@ -307,9 +309,7 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _renewHold(string memory operationId, uint256 expiration) internal returns (bool) {
-        Hold storage renewableHold = holds[operationId.toHash()];
-
+    function _renewHold(Hold storage renewableHold, string memory operationId, uint256 expiration) internal returns (bool) {
         uint256 oldExpiration = renewableHold.expiration;
         renewableHold.expiration = expiration;
 
@@ -323,10 +323,9 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _setHoldToExecuted(string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
-        _decreaseHeldBalance(operationId, heldBalanceDecrease);
+    function _setHoldToExecuted(Hold storage executableHold, string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
+        _decreaseHeldBalance(executableHold, heldBalanceDecrease);
 
-        Hold storage executableHold = holds[operationId.toHash()];
         executableHold.status = HoldStatusCode.Executed;
 
         emit HoldExecuted(
@@ -338,10 +337,9 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _setHoldToExecutedAndKeptOpen(string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
-        _decreaseHeldBalance(operationId, heldBalanceDecrease);
+    function _setHoldToExecutedAndKeptOpen(Hold storage executableHold, string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
+        _decreaseHeldBalance(executableHold, heldBalanceDecrease);
 
-        Hold storage executableHold = holds[operationId.toHash()];
         executableHold.status = HoldStatusCode.ExecutedAndKeptOpen;
         executableHold.value = executableHold.value.sub(value);
 
@@ -354,9 +352,7 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _decreaseHeldBalance(string memory operationId, uint256 value) private {
-        Hold storage executableHold = holds[operationId.toHash()];
-
+    function _decreaseHeldBalance(Hold storage executableHold, uint256 value) private {
         heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
         _totalHeldBalance = _totalHeldBalance.sub(value);
     }
@@ -382,9 +378,7 @@ contract Holdable is IHoldable, ERC20 {
         require(operators[from][msg.sender], "This operator is not authorized");
     }
 
-    function _checkRenewableHold(string memory operationId) private view {
-        Hold storage renewableHold = holds[operationId.toHash()];
-
+    function _checkRenewableHold(Hold storage renewableHold) private view {
         require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
         require(!_isExpired(renewableHold.expiration), "An expired hold can not be renewed");
         require(
