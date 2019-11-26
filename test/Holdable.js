@@ -158,7 +158,7 @@ contract('Holdable', (accounts) => {
             );
         });
 
-        it.only('should successfully create a perpetual hold and emit a HoldCreated event', async() => {
+        it('should successfully create a perpetual hold and emit a HoldCreated event', async() => {
             const tx = await holdableInterface.hold(
               operationId,
               payee,
@@ -480,16 +480,19 @@ contract('Holdable', (accounts) => {
         });
 
         it('should successfully create a hold and emit a HoldCreated event', async() => {
+            const blockTimestamp = await getBlockTimestamp();
+            const expectedExpiration = blockTimestamp + ONE_DAY
+
             const tx = await holdableInterface.holdWithExpirationDate(
               operationId,
               payee,
               notary,
               1,
-              ONE_DAY,
+              expectedExpiration,
               {from: payer}
             );
 
-            const blockTimestamp = await getBlockTimestamp()
+
 
             await verifyHoldCreated(
                 holdableInterface,
@@ -500,7 +503,7 @@ contract('Holdable', (accounts) => {
                 payee,
                 notary,
                 1,
-                blockTimestamp + ONE_DAY
+                expectedExpiration
             );
         });
 
