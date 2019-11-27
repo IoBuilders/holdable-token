@@ -385,22 +385,17 @@ contract Holdable is IHoldable, ERC20 {
         return expiration;
     }
 
-    function _decreaseHeldBalance(Hold storage executableHold, uint256 value) private {
-        heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
-        _totalHeldBalance = _totalHeldBalance.sub(value);
-    }
-
-    function _checkHold(address to) private pure {
+    function _checkHold(address to) internal pure {
         require(to != address(0), "Payee address must not be zero address");
     }
 
-    function _checkHoldFrom(address to, address from) private view {
+    function _checkHoldFrom(address to, address from) internal view {
         require(to != address(0), "Payee address must not be zero address");
         require(from != address(0), "Payer address must not be zero address");
         require(operators[from][msg.sender], "This operator is not authorized");
     }
 
-    function _checkRenewableHold(Hold storage renewableHold) private view {
+    function _checkRenewableHold(Hold storage renewableHold) internal view {
         require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
         require(!_isExpired(renewableHold.expiration), "An expired hold can not be renewed");
         require(
@@ -409,8 +404,13 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _checkExpiration(uint256 expiration) private view {
+    function _checkExpiration(uint256 expiration) internal view {
         /* solium-disable-next-line security/no-block-members */
         require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+    }
+
+    function _decreaseHeldBalance(Hold storage executableHold, uint256 value) private {
+        heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
+        _totalHeldBalance = _totalHeldBalance.sub(value);
     }
 }
