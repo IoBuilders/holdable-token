@@ -299,9 +299,19 @@ contract Holdable is IHoldable, ERC20 {
         require(value <= executableHold.value, "The value should be equal or less than the held amount");
 
         if (keepOpenIfHoldHasBalance && ((executableHold.value - value) > 0)) {
-            _setHoldToExecutedAndKeptOpen(executableHold, operationId, value, value);
+            _setHoldToExecutedAndKeptOpen(
+                executableHold,
+                operationId,
+                value,
+                value
+            );
         } else {
-            _setHoldToExecuted(executableHold, operationId, value, executableHold.value);
+            _setHoldToExecuted(
+                executableHold,
+                operationId,
+                value,
+                executableHold.value
+            );
         }
 
         _transfer(executableHold.origin, executableHold.target, value);
@@ -323,7 +333,13 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _setHoldToExecuted(Hold storage executableHold, string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
+    function _setHoldToExecuted(
+        Hold storage executableHold,
+        string memory operationId,
+        uint256 value,
+        uint256 heldBalanceDecrease
+    ) internal
+    {
         _decreaseHeldBalance(executableHold, heldBalanceDecrease);
 
         executableHold.status = HoldStatusCode.Executed;
@@ -337,7 +353,13 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _setHoldToExecutedAndKeptOpen(Hold storage executableHold, string memory operationId, uint256 value, uint256 heldBalanceDecrease) internal {
+    function _setHoldToExecutedAndKeptOpen(
+        Hold storage executableHold,
+        string memory operationId,
+        uint256 value,
+        uint256 heldBalanceDecrease
+    ) internal
+    {
         _decreaseHeldBalance(executableHold, heldBalanceDecrease);
 
         executableHold.status = HoldStatusCode.ExecutedAndKeptOpen;
@@ -352,12 +374,7 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
-    function _decreaseHeldBalance(Hold storage executableHold, uint256 value) private {
-        heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
-        _totalHeldBalance = _totalHeldBalance.sub(value);
-    }
-
-    function _computeExpiration(uint256 _timeToExpiration) private view returns (uint256) {
+    function _computeExpiration(uint256 _timeToExpiration) internal view returns (uint256) {
         uint256 expiration = 0;
 
         if (_timeToExpiration != 0) {
@@ -366,6 +383,11 @@ contract Holdable is IHoldable, ERC20 {
         }
 
         return expiration;
+    }
+
+    function _decreaseHeldBalance(Hold storage executableHold, uint256 value) private {
+        heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
+        _totalHeldBalance = _totalHeldBalance.sub(value);
     }
 
     function _checkHold(address to) private pure {
@@ -388,6 +410,7 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function _checkExpiration(uint256 expiration) private view {
+        /* solium-disable-next-line security/no-block-members */
         require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
     }
 }
