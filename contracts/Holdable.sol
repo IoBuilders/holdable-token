@@ -21,7 +21,7 @@ contract Holdable is IHoldable, ERC20 {
     mapping(bytes32 => Hold) internal holds;
     mapping(address => uint256) private heldBalance;
     mapping(address => mapping(address => bool)) private operators;
-    mapping(address => bool) public defaultOperators;
+    mapping(address => bool) internal defaultOperators;
 
     uint256 private _totalHeldBalance;
 
