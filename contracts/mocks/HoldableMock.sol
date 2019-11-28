@@ -20,6 +20,14 @@ contract HoldableMock is Holdable {
         isExpired = _isExpired;
     }
 
+    function addDefaultOperator(address operator) external {
+        _addDefaultOperator(operator);
+    }
+
+    function removeDefaultOperator(address operator) external {
+        _removeDefaultOperator(operator);
+    }
+
     function _isExpired(uint256 expiration) internal view returns (bool) {
         if (isExpiredSet) {
             return isExpired;

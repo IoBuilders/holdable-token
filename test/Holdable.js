@@ -29,6 +29,7 @@ contract('Holdable', (accounts) => {
     const unauthorizedOperator = accounts[4];
     const notary = accounts[5];
     const userC = accounts[6];
+    const defaultOperator = accounts[7];
 
     beforeEach(async() => {
         holdable = await Holdable.new({from: owner});
@@ -1801,6 +1802,84 @@ contract('Holdable', (accounts) => {
                     _event.value.toNumber() === 2
                     ;
             });
+        });
+    });
+
+    describe('_addDefaultOperator', async() => {
+        it('should allow a default operator to call holdFrom for any account', async() => {
+            await holdable.addDefaultOperator(defaultOperator);
+
+            await truffleAssert.passes(
+              holdableInterface.holdFrom(
+                operationId,
+                payer,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: defaultOperator}
+              ),
+              'A default operator could not call holdFrom'
+            );
+        });
+
+        it('should allow a default operator to call holdFromWithExpirationDate for any account', async() => {
+            await holdable.addDefaultOperator(defaultOperator);
+
+            const expiration = await getBlockTimestamp() + ONE_DAY;
+
+            await truffleAssert.passes(
+              holdableInterface.holdFromWithExpirationDate(
+                operationId,
+                payer,
+                payee,
+                notary,
+                1,
+                expiration,
+                {from: defaultOperator}
+              ),
+              'A default operator could not call holdFromWithExpirationDate'
+            );
+        });
+    });
+
+    describe('_removeDefaultOperator', async() => {
+        it('should disallow a default operator to call holdFrom for any account', async() => {
+            await holdable.addDefaultOperator(defaultOperator);
+            await holdable.removeDefaultOperator(defaultOperator);
+
+            await truffleAssert.reverts(
+              holdableInterface.holdFrom(
+                operationId,
+                payer,
+                payee,
+                notary,
+                1,
+                ONE_DAY,
+                {from: defaultOperator}
+              ),
+              'This operator is not authorized'
+            );
+        });
+
+        it('should disallow a default operator to call holdFromWithExpirationDate for any account', async() => {
+            await holdable.addDefaultOperator(defaultOperator);
+            await holdable.removeDefaultOperator(defaultOperator);
+
+            const expiration = await getBlockTimestamp() + ONE_DAY;
+
+            await truffleAssert.reverts(
+              holdableInterface.holdFromWithExpirationDate(
+                operationId,
+                payer,
+                payee,
+                notary,
+                1,
+                expiration,
+                {from: defaultOperator}
+              ),
+              'This operator is not authorized'
+            );
         });
     });
 });

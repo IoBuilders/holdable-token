@@ -21,6 +21,7 @@ contract Holdable is IHoldable, ERC20 {
     mapping(bytes32 => Hold) internal holds;
     mapping(address => uint256) private heldBalance;
     mapping(address => mapping(address => bool)) private operators;
+    mapping(address => bool) internal defaultOperators;
 
     uint256 private _totalHeldBalance;
 
@@ -374,6 +375,14 @@ contract Holdable is IHoldable, ERC20 {
         );
     }
 
+    function _addDefaultOperator(address defaultOperator) internal {
+        defaultOperators[defaultOperator] = true;
+    }
+
+    function _removeDefaultOperator(address defaultOperator) internal {
+        defaultOperators[defaultOperator] = false;
+    }
+
     function _computeExpiration(uint256 _timeToExpiration) internal view returns (uint256) {
         uint256 expiration = 0;
 
@@ -397,7 +406,7 @@ contract Holdable is IHoldable, ERC20 {
     function _checkHoldFrom(address to, address from) private view {
         require(to != address(0), "Payee address must not be zero address");
         require(from != address(0), "Payer address must not be zero address");
-        require(operators[from][msg.sender], "This operator is not authorized");
+        require(_isDefaultOperatorOrOperator(msg.sender, from), "This operator is not authorized");
     }
 
     function _checkRenewableHold(Hold storage renewableHold) private view {
@@ -412,5 +421,9 @@ contract Holdable is IHoldable, ERC20 {
     function _checkExpiration(uint256 expiration) private view {
         /* solium-disable-next-line security/no-block-members */
         require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+    }
+
+    function _isDefaultOperatorOrOperator(address operator, address from) private view returns (bool) {
+        return defaultOperators[operator] || operators[from][operator];
     }
 }
