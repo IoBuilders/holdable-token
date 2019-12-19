@@ -1,6 +1,6 @@
 {
   "name": "eip1996",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "An extension to the ERC-20 standard token, which allows tokens to be put on hold. This guarantees a future transfer and makes the held tokens unavailable for transfer in the mean time. Holds are similar to escrows in that are firm and lead to final settlement.",
   "main": "truffle-config.js",
   "dependencies": {
