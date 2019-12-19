@@ -116,17 +116,6 @@ contract Holdable is IHoldable, ERC20 {
     function releaseHold(string memory operationId) public returns (bool) {
         Hold storage releasableHold = holds[operationId.toHash()];
 
-        require(
-            releasableHold.status == HoldStatusCode.Ordered || releasableHold.status == HoldStatusCode.ExecutedAndKeptOpen,
-            "A hold can only be released in status Ordered or ExecutedAndKeptOpen"
-        );
-        require(
-            _isExpired(releasableHold.expiration) ||
-            (msg.sender == releasableHold.notary) ||
-            (msg.sender == releasableHold.target),
-            "A not expired hold can only be released by the notary or the payee"
-        );
-
         return _releaseHold(releasableHold, operationId);
     }
 
@@ -269,6 +258,17 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function _releaseHold(Hold storage releasableHold, string memory operationId) internal returns (bool) {
+        require(
+            releasableHold.status == HoldStatusCode.Ordered || releasableHold.status == HoldStatusCode.ExecutedAndKeptOpen,
+            "A hold can only be released in status Ordered or ExecutedAndKeptOpen"
+        );
+        require(
+            _isExpired(releasableHold.expiration) ||
+            (msg.sender == releasableHold.notary) ||
+            (msg.sender == releasableHold.target),
+            "A not expired hold can only be released by the notary or the payee"
+        );
+
         if (_isExpired(releasableHold.expiration)) {
             releasableHold.status = HoldStatusCode.ReleasedOnExpiration;
         } else {
