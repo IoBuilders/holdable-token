@@ -1277,6 +1277,37 @@ contract('Holdable', (accounts) => {
         });
     });
 
+    describe('executeHoldToBurn', async() => {
+        beforeEach(async() => {
+            await holdableInterface.hold(
+                operationId,
+                payee,
+                notary,
+                2,
+                ONE_DAY,
+                {from: payer}
+            );
+        });
+
+        it('It should do during the execute hold a burn operation instead a transfer.', async() => {
+            const tx = await holdable.executeHoldToBurn(operationId, {from: notary});
+
+            const balanceOfPayer = await holdableInterface.balanceOf(payer);
+            assert.strictEqual(balanceOfPayer.toNumber(), 1, 'Balance of payer not updated after mint');
+
+            const balanceOfPayee = await holdableInterface.balanceOf(payee);
+            assert.strictEqual(balanceOfPayee.toNumber(), 0, 'Balance of payee updated after mint');
+
+            truffleAssert.eventEmitted(tx, 'Transfer', (_event) => {
+                return _event.from === payer &&
+                    _event.to ===  '0x0000000000000000000000000000000000000000' &&
+                    _event.value.toNumber() === 2
+                    ;
+            });
+
+        });
+    });
+
     describe('renewHold', async() => {
         beforeEach(async() => {
             await holdableInterface.hold(

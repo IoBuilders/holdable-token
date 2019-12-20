@@ -7,12 +7,26 @@ contract HoldableMock is Holdable {
     bool isExpiredSet;
     bool isExpired;
 
+    event RevokedHoldOperator(address indexed operator, address indexed account);
+
     function mint(address account, uint256 value) external {
         _mint(account, value);
     }
 
     function changeHoldExpirationTime(string calldata operationId, uint256 _expiration) external {
         holds[operationId.toHash()].expiration = _expiration;
+    }
+
+    function executeHoldToBurn(string calldata operationId) external {
+        Hold storage hold = holds[operationId.toHash()];
+
+        _executeHold(
+            operationId,
+            hold.value,
+            false,
+            false
+        );
+        _burn(hold.origin, hold.value);
     }
 
     function setExpired(bool _isExpired) external {
