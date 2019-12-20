@@ -410,7 +410,8 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function _checkRenewableHold(Hold storage renewableHold) private view {
-        require(renewableHold.status == HoldStatusCode.Ordered, "A hold can only be renewed in status Ordered");
+        require(renewableHold.status == HoldStatusCode.Ordered || renewableHold.status == HoldStatusCode.ExecutedAndKeptOpen,
+            "A hold can only be renewed in status Ordered or ExecutedAndKeptOpen");
         require(!_isExpired(renewableHold.expiration), "An expired hold can not be renewed");
         require(
             renewableHold.origin == msg.sender || renewableHold.issuer == msg.sender,
