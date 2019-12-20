@@ -1699,13 +1699,13 @@ contract('Holdable', (accounts) => {
     });
 
     describe('authorizeHoldOperator', async() => {
-        it('should authorize an operator and emit a AuthorizedHoldOperator event', async() => {
+        it('should authorize an operator and emit a HoldOperatorAuthorized event', async() => {
             const tx = await holdableInterface.authorizeHoldOperator(authorizedOperator, {from: payer});
 
             const isAuthorized = await holdableInterface.isHoldOperatorFor(authorizedOperator, payer);
             assert.strictEqual(isAuthorized, true, 'Operator has not been authorized');
 
-            truffleAssert.eventEmitted(tx, 'AuthorizedHoldOperator', (_event) => {
+            truffleAssert.eventEmitted(tx, 'HoldOperatorAuthorized', (_event) => {
                 return _event.operator === authorizedOperator && _event.account === payer;
             });
         });

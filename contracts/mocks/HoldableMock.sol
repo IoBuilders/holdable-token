@@ -7,8 +7,6 @@ contract HoldableMock is Holdable {
     bool isExpiredSet;
     bool isExpired;
 
-    event RevokedHoldOperator(address indexed operator, address indexed account);
-
     function mint(address account, uint256 value) external {
         _mint(account, value);
     }

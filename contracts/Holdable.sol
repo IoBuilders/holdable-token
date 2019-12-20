@@ -193,7 +193,7 @@ contract Holdable is IHoldable, ERC20 {
         require (operators[msg.sender][operator] == false, "The operator is already authorized");
 
         operators[msg.sender][operator] = true;
-        emit AuthorizedHoldOperator(operator, msg.sender);
+        emit HoldOperatorAuthorized(operator, msg.sender);
         return true;
     }
 
