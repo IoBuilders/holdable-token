@@ -290,15 +290,6 @@ contract Holdable is IHoldable, ERC20 {
     function _executeHold(string memory operationId, uint256 value, bool keepOpenIfHoldHasBalance) internal returns (bool) {
         Hold storage executableHold = holds[operationId.toHash()];
 
-        require(
-            executableHold.status == HoldStatusCode.Ordered || executableHold.status == HoldStatusCode.ExecutedAndKeptOpen,
-            "A hold can only be executed in status Ordered or ExecutedAndKeptOpen"
-        );
-        require(value != 0, "Value must be greater than zero");
-        require(executableHold.notary == msg.sender, "The hold can only be executed by the notary");
-        require(!_isExpired(executableHold.expiration), "The hold has already expired");
-        require(value <= executableHold.value, "The value should be equal or less than the held amount");
-
         if (keepOpenIfHoldHasBalance && ((executableHold.value - value) > 0)) {
             _setHoldToExecutedAndKeptOpen(
                 executableHold,
@@ -341,6 +332,7 @@ contract Holdable is IHoldable, ERC20 {
         uint256 heldBalanceDecrease
     ) internal
     {
+        _checkExecuteHold(executableHold, value);
         _decreaseHeldBalance(executableHold, heldBalanceDecrease);
 
         executableHold.status = HoldStatusCode.Executed;
@@ -361,6 +353,7 @@ contract Holdable is IHoldable, ERC20 {
         uint256 heldBalanceDecrease
     ) internal
     {
+        _checkExecuteHold(executableHold, value);
         _decreaseHeldBalance(executableHold, heldBalanceDecrease);
 
         executableHold.status = HoldStatusCode.ExecutedAndKeptOpen;
@@ -407,6 +400,17 @@ contract Holdable is IHoldable, ERC20 {
         require(to != address(0), "Payee address must not be zero address");
         require(from != address(0), "Payer address must not be zero address");
         require(_isDefaultOperatorOrOperator(msg.sender, from), "This operator is not authorized");
+    }
+
+    function _checkExecuteHold(Hold memory executableHold, uint256 value) private {
+        require(
+            executableHold.status == HoldStatusCode.Ordered || executableHold.status == HoldStatusCode.ExecutedAndKeptOpen,
+            "A hold can only be executed in status Ordered or ExecutedAndKeptOpen"
+        );
+        require(value != 0, "Value must be greater than zero");
+        require(executableHold.notary == msg.sender, "The hold can only be executed by the notary");
+        require(!_isExpired(executableHold.expiration), "The hold has already expired");
+        require(value <= executableHold.value, "The value should be equal or less than the held amount");
     }
 
     function _checkRenewableHold(Hold storage renewableHold) private view {
