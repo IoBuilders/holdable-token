@@ -15,6 +15,18 @@ contract HoldableMock is Holdable {
         holds[operationId.toHash()].expiration = _expiration;
     }
 
+    function executeHoldToBurn(string calldata operationId) external {
+        Hold storage hold = holds[operationId.toHash()];
+
+        _executeHold(
+            operationId,
+            hold.value,
+            false,
+            false
+        );
+        _burn(hold.origin, hold.value);
+    }
+
     function setExpired(bool _isExpired) external {
         isExpiredSet = true;
         isExpired = _isExpired;

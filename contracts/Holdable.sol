@@ -120,11 +120,21 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     function executeHold(string memory operationId, uint256 value) public returns (bool) {
-        return _executeHold(operationId, value, false);
+        return _executeHold(
+            operationId,
+            value,
+            false,
+            true
+        );
     }
 
     function executeHoldAndKeepOpen(string memory operationId, uint256 value) public returns (bool) {
-        return _executeHold(operationId, value, true);
+        return _executeHold(
+            operationId,
+            value,
+            true,
+            true
+        );
     }
 
     function renewHold(string memory operationId, uint256 timeToExpiration) public returns (bool) {
@@ -183,7 +193,7 @@ contract Holdable is IHoldable, ERC20 {
         require (operators[msg.sender][operator] == false, "The operator is already authorized");
 
         operators[msg.sender][operator] = true;
-        emit AuthorizedHoldOperator(operator, msg.sender);
+        emit HoldOperatorAuthorized(operator, msg.sender);
         return true;
     }
 
@@ -287,7 +297,13 @@ contract Holdable is IHoldable, ERC20 {
         return true;
     }
 
-    function _executeHold(string memory operationId, uint256 value, bool keepOpenIfHoldHasBalance) internal returns (bool) {
+    function _executeHold(
+        string memory operationId,
+        uint256 value,
+        bool keepOpenIfHoldHasBalance,
+        bool doTransfer
+    ) internal returns (bool)
+    {
         Hold storage executableHold = holds[operationId.toHash()];
 
         require(
@@ -315,7 +331,9 @@ contract Holdable is IHoldable, ERC20 {
             );
         }
 
-        _transfer(executableHold.origin, executableHold.target, value);
+        if (doTransfer) {
+            _transfer(executableHold.origin, executableHold.target, value);
+        }
 
         return true;
     }

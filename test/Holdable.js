@@ -1277,6 +1277,37 @@ contract('Holdable', (accounts) => {
         });
     });
 
+    describe('executeHoldToBurn', async() => {
+        beforeEach(async() => {
+            await holdableInterface.hold(
+                operationId,
+                payee,
+                notary,
+                2,
+                ONE_DAY,
+                {from: payer}
+            );
+        });
+
+        it('It should do during the execute hold a burn operation instead a transfer.', async() => {
+            const tx = await holdable.executeHoldToBurn(operationId, {from: notary});
+
+            const balanceOfPayer = await holdableInterface.balanceOf(payer);
+            assert.strictEqual(balanceOfPayer.toNumber(), 1, 'Balance of payer not updated after mint');
+
+            const balanceOfPayee = await holdableInterface.balanceOf(payee);
+            assert.strictEqual(balanceOfPayee.toNumber(), 0, 'Balance of payee updated after mint');
+
+            truffleAssert.eventEmitted(tx, 'Transfer', (_event) => {
+                return _event.from === payer &&
+                    _event.to ===  '0x0000000000000000000000000000000000000000' &&
+                    _event.value.toNumber() === 2
+                    ;
+            });
+
+        });
+    });
+
     describe('renewHold', async() => {
         beforeEach(async() => {
             await holdableInterface.hold(
@@ -1668,13 +1699,13 @@ contract('Holdable', (accounts) => {
     });
 
     describe('authorizeHoldOperator', async() => {
-        it('should authorize an operator and emit a AuthorizedHoldOperator event', async() => {
+        it('should authorize an operator and emit a HoldOperatorAuthorized event', async() => {
             const tx = await holdableInterface.authorizeHoldOperator(authorizedOperator, {from: payer});
 
             const isAuthorized = await holdableInterface.isHoldOperatorFor(authorizedOperator, payer);
             assert.strictEqual(isAuthorized, true, 'Operator has not been authorized');
 
-            truffleAssert.eventEmitted(tx, 'AuthorizedHoldOperator', (_event) => {
+            truffleAssert.eventEmitted(tx, 'HoldOperatorAuthorized', (_event) => {
                 return _event.operator === authorizedOperator && _event.account === payer;
             });
         });

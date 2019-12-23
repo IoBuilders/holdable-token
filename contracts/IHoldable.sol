@@ -77,7 +77,7 @@ interface IHoldable {
     uint256 transferredValue);
     event HoldReleased(address indexed holdIssuer, string operationId, HoldStatusCode status);
     event HoldRenewed(address indexed holdIssuer, string operationId, uint256 oldExpiration, uint256 newExpiration);
-    event AuthorizedHoldOperator(address indexed operator, address indexed account);
+    event HoldOperatorAuthorized(address indexed operator, address indexed account);
     event RevokedHoldOperator(address indexed operator, address indexed account);
 
     /**
