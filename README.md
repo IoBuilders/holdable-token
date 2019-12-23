@@ -113,6 +113,7 @@ npm version major
 
 Afterwards the changes and the tags have to be pushed to the GitHub repository with:
 ```sh
+git push
 git push origin --tags
 ```
 

@@ -38,5 +38,9 @@
   "bugs": {
     "url": "https://github.com/IoBuilders/holdable-token/issues"
   },
-  "homepage": "https://github.com/IoBuilders/holdable-token#readme"
+  "homepage": "https://github.com/IoBuilders/holdable-token#readme",
+  "files": [
+    "contracts/Holdable.sol",
+    "contracts/IHoldable.sol"
+  ]
 }
