@@ -1314,7 +1314,7 @@ contract('Holdable', (accounts) => {
                 operationId,
                 payee,
                 notary,
-                1,
+                2,
                 ONE_DAY,
                 {from: payer}
             );
@@ -1350,7 +1350,7 @@ contract('Holdable', (accounts) => {
         it('should revert if the hold has been executed', async() => {
             await holdableInterface.executeHold(
                 operationId,
-                1,
+                2,
                 {from: notary}
             );
 
@@ -1360,7 +1360,7 @@ contract('Holdable', (accounts) => {
                     ONE_DAY,
                     {from: notary}
                 ),
-                'A hold can only be renewed in status Ordered'
+                'A hold can only be renewed in status Ordered or ExecutedAndKeptOpen'
             );
         });
 
@@ -1413,7 +1413,7 @@ contract('Holdable', (accounts) => {
             );
 
             const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
-            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 2);
 
             truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -1441,7 +1441,7 @@ contract('Holdable', (accounts) => {
             );
 
             const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
-            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 2);
 
             truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -1449,6 +1449,71 @@ contract('Holdable', (accounts) => {
                     _event.oldExpiration.toNumber() === originalHold.expiration.toNumber() &&
                     _event.newExpiration.toNumber() === 0
                 ;
+            });
+        });
+
+        it('It should execute and keep open, renew and emit a HoldRenewed when called by the payer with a non zero value', async() => {
+            await holdableInterface.executeHoldAndKeepOpen(operationId, 1, {from: notary});
+            const originalHold = await holdableInterface.retrieveHoldData(operationId);
+
+            // use the mock contracts changeHoldExpirationTime function to reduce the expiration time by twelve hours
+            const reducedOriginalExpiration = originalHold.expiration.toNumber() - TWELVE_HOURS;
+            await holdable.changeHoldExpirationTime(operationId, reducedOriginalExpiration);
+
+            const tx = await holdableInterface.renewHold(
+                operationId,
+                ONE_DAY,
+                {from: payer}
+            );
+
+            const blockTimestamp = await getBlockTimestamp();
+            const expectedExpiration = blockTimestamp + ONE_DAY;
+
+            const renewedHold = await holdableInterface.retrieveHoldData(operationId);
+            assert.strictEqual(
+                renewedHold.expiration.toNumber(),
+                expectedExpiration,
+                'Hold was not renewed correctly'
+            );
+
+            const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+
+            truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.oldExpiration.toNumber() === reducedOriginalExpiration &&
+                    _event.newExpiration.toNumber() === expectedExpiration
+                    ;
+            });
+        });
+
+        it('It should execute and keep open, renew and emit a HoldRenewed when called by the payer with a zero value', async() => {
+            await holdableInterface.executeHoldAndKeepOpen(operationId, 1, {from: notary});
+            const originalHold = await holdableInterface.retrieveHoldData(operationId);
+
+            const tx = await holdableInterface.renewHold(
+                operationId,
+                0,
+                {from: payer}
+            );
+
+            const renewedHold = await holdableInterface.retrieveHoldData(operationId);
+            assert.strictEqual(
+                renewedHold.expiration.toNumber(),
+                0,
+                'Hold was not renewed correctly'
+            );
+
+            const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+
+            truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.oldExpiration.toNumber() === originalHold.expiration.toNumber() &&
+                    _event.newExpiration.toNumber() === 0
+                    ;
             });
         });
     });
@@ -1459,7 +1524,7 @@ contract('Holdable', (accounts) => {
               operationId,
               payee,
               notary,
-              1,
+              2,
               ONE_DAY,
               {from: payer}
             );
@@ -1495,7 +1560,7 @@ contract('Holdable', (accounts) => {
         it('should revert if the hold has been executed', async() => {
             await holdableInterface.executeHold(
               operationId,
-              1,
+              2,
               {from: notary}
             );
 
@@ -1505,7 +1570,7 @@ contract('Holdable', (accounts) => {
                 ONE_DAY,
                 {from: notary}
               ),
-              'A hold can only be renewed in status Ordered'
+              'A hold can only be renewed in status Ordered or ExecutedAndKeptOpen'
             );
         });
 
@@ -1566,7 +1631,7 @@ contract('Holdable', (accounts) => {
             );
 
             const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
-            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 2);
 
             truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -1594,7 +1659,7 @@ contract('Holdable', (accounts) => {
             );
 
             const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
-            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 2);
 
             truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
                 return _event.holdIssuer === payer &&
@@ -1602,6 +1667,67 @@ contract('Holdable', (accounts) => {
                   _event.oldExpiration.toNumber() === originalHold.expiration.toNumber() &&
                   _event.newExpiration.toNumber() === 0
                   ;
+            });
+        });
+
+        it('It should execute and keep open, renew and emit a HoldRenewed when called by the payer with a non zero value', async() => {
+            await holdableInterface.executeHoldAndKeepOpen(operationId, 1, {from: notary});
+            const originalHold = await holdableInterface.retrieveHoldData(operationId);
+            const oldExpiration = originalHold.expiration;
+            const blockTimestamp = await getBlockTimestamp();
+            const newExpiration = blockTimestamp + ONE_WEEK;
+
+            const tx = await holdableInterface.renewHoldWithExpirationDate(
+                operationId,
+                newExpiration,
+                {from: payer}
+            );
+
+            const renewedHold = await holdableInterface.retrieveHoldData(operationId);
+            assert.strictEqual(
+                renewedHold.expiration.toNumber(),
+                newExpiration,
+                'Hold was not renewed correctly'
+            );
+
+            const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+
+            truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.oldExpiration.toNumber() === oldExpiration.toNumber() &&
+                    _event.newExpiration.toNumber() === newExpiration
+                    ;
+            });
+        });
+
+        it('It should execute and keep open, renew and emit a HoldRenewed when called by the payer with a zero value', async() => {
+            await holdableInterface.executeHoldAndKeepOpen(operationId, 1, {from: notary});
+            const originalHold = await holdableInterface.retrieveHoldData(operationId);
+
+            const tx = await holdableInterface.renewHoldWithExpirationDate(
+                operationId,
+                0,
+                {from: payer}
+            );
+
+            const renewedHold = await holdableInterface.retrieveHoldData(operationId);
+            assert.strictEqual(
+                renewedHold.expiration.toNumber(),
+                0,
+                'Hold was not renewed correctly'
+            );
+
+            const balanceOnHoldOfPayer = await holdableInterface.balanceOnHold(payer);
+            assert.strictEqual(balanceOnHoldOfPayer.toNumber(), 1);
+
+            truffleAssert.eventEmitted(tx, 'HoldRenewed', (_event) => {
+                return _event.holdIssuer === payer &&
+                    _event.operationId === operationId &&
+                    _event.oldExpiration.toNumber() === originalHold.expiration.toNumber() &&
+                    _event.newExpiration.toNumber() === 0
+                    ;
             });
         });
     });
