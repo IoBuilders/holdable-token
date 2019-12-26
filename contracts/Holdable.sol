@@ -19,11 +19,11 @@ contract Holdable is IHoldable, ERC20 {
     }
 
     mapping(bytes32 => Hold) internal holds;
-    mapping(address => uint256) private heldBalance;
-    mapping(address => mapping(address => bool)) private operators;
+    mapping(address => uint256) internal heldBalance;
+    mapping(address => mapping(address => bool)) internal operators;
     mapping(address => bool) internal defaultOperators;
 
-    uint256 private _totalHeldBalance;
+    uint256 internal _totalHeldBalance;
 
     function hold(
         string memory operationId,
@@ -412,6 +412,10 @@ contract Holdable is IHoldable, ERC20 {
         return expiration;
     }
 
+    function _isDefaultOperatorOrOperator(address operator, address from) internal view returns (bool) {
+        return defaultOperators[operator] || operators[from][operator];
+    }
+
     function _decreaseHeldBalance(Hold storage executableHold, uint256 value) private {
         heldBalance[executableHold.origin] = heldBalance[executableHold.origin].sub(value);
         _totalHeldBalance = _totalHeldBalance.sub(value);
@@ -442,9 +446,5 @@ contract Holdable is IHoldable, ERC20 {
     function _checkExpiration(uint256 expiration) private view {
         /* solium-disable-next-line security/no-block-members */
         require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
-    }
-
-    function _isDefaultOperatorOrOperator(address operator, address from) private view returns (bool) {
-        return defaultOperators[operator] || operators[from][operator];
     }
 }
